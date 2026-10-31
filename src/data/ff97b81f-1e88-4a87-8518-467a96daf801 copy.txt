@@ -1,0 +1,1436 @@
+﻿Comprehensive Transit Data Compendium and Systems Architecture for the Punjab, Chandigarh, and SAS Nagar (Mohali–Landran) Mobility Network
+Executive Architectural Overview: The Tricity–Landran Transit Ecosystem
+Developing a high-accuracy transit navigation and live-tracking platform—analogous to Where Is My Bus—for the Chandigarh Capital Region (Tricity) and Punjab requires reconciling three fundamentally distinct operational transit layers that converge in Sahibzada Ajit Singh (SAS) Nagar (Mohali) and the Landran educational corridor. Unlike monolithic metropolitan transit authorities, mobility across Chandigarh, Mohali, Kharar, and Landran is governed by an overlapping tri-agency structure: the Chandigarh Transport Undertaking (CTU) managing urban and suburban grid routes across Union Territory and satellite town boundaries; Punjab state transport undertakings, namely Pepsu Road Transport Corporation (PRTC) and Punjab Roadways (PUNBUS), alongside private stage-carriage operators running high-frequency regional highway corridors; and private institutional fleets operated by major higher-education hubs, specifically CGC Landran (Sector 112) and CGC University (Jhanjeri, Mohali).
+A critical domain nuance that frequently degrades the accuracy of existing commuter applications in the region—such as legacy iterations of the Tricity Bus application—is the geographic and operational conflation of Landran Chowk with the two separate Chandigarh Group of Colleges (CGC) campuses and adjacent universities. CGC Landran is situated directly on the Kharar–Banur National Highway (NH 205-A) in Sector 112, Greater Mohali (Pin Code 140307), positioned 10.9 km southwest of ISBT Sector 43, 11.2 km from the Mohali (SAS Nagar) Railway Station, and 20 km from Shaheed Bhagat Singh International Airport. Conversely, CGC University (CGC Jhanjeri) is located further west along the Landran–Sirhind road at Jhanjeri (30.68286° N, 76.61486° E). While public CTU buses on Routes 20, 20A, 213, and 242 directly serve the Landran junction and the NH 205-A/Kharar axes, daily scholar transit to the campus gates relies heavily on dedicated institutional bus networks that execute tightly timed morning sweeps between 07:05 AM and 09:10 AM across Chandigarh, Mohali, Panchkula, Ambala, Patiala, Ropar, and Ludhiana.
+From a real-time telemetry perspective, CTU has modernized its fleet under a World Bank-funded Intelligent Transportation System (ITS) program integrated with the Chandigarh Smart City Integrated Command and Control Centre (ICCC). However, because official General Transit Feed Specification (GTFS) static and real-time feeds experience periodic synchronization gaps on third-party mapping platforms, a production-grade transit platform must combine authoritative timetable baselines—updated by CTU as of July 25, 2026—with directional stop disambiguation, dynamic stage-carriage fare calculation engines, and hybrid GPS-crowdsourced telemetry.
+Geospatial Registry and Core Transit Node Coordinates
+To anchor the application's map rendering, geofencing, and nearest-stop spatial queries, the underlying database must ingest verified latitude and longitude coordinates for the Landran–Mohali–Chandigarh corridor. Urban sprawl across SAS Nagar encompasses an urban bounding box between 30^\circ 36'\text{ N} and 30^\circ 45'\text{ N} latitude (30.6000^\circ\text{ N} to 30.7500^\circ\text{ N}) and 76^\circ 38'\text{ E} to 76^\circ 46'\text{ E} longitude (76.6333^\circ\text{ E} to 76.7667^\circ\text{ E}), covering 116.50\text{ km}^2 across the Kharar and Majri blocks. Within this grid, Landran (Census Village Code 039150, Hadbast No. 37) functions as the primary southern chokepoint where traffic from Chandigarh (via Sohana), Kharar (via NH 205-A), Banur/Rajpura, and Sirhind/Chunni converges. Surrounding sectors such as Sector 70 (6.96 km), Sector 61 (8.36 km), Sector 66 (9.35 km), Sector 117 (11.88 km), and Sector 49 (12.74 km) feed directly into this junction.
+In public transit data models, Landran cannot be represented as a single spatial point; CTU explicitly splits the node into directional boarding zones: Landran (Up), which is served by four routes heading inbound toward Chandigarh and Derabassi, and Landran (Down), which is served by three routes heading outbound toward Kharar and Tangori. The table below provides the verified geospatial coordinates, administrative identifiers, and functional classifications for the core nodes required in the application's spatial stops table.
+Node / Stop Identifier
+	Stop Name & Functional Role
+	Latitude (^\circ\text{N})
+	Longitude (^\circ\text{E})
+	Pin Code / Jurisdiction
+	Key Serving Routes & Connectivity Notes
+	LND-CEN-01
+	Landran Locality Center (NH 205-A Hub)
+	30.694144
+	76.665689
+	140307 / SAS Nagar (Hadbast 37)
+	Central reference polygon for Landran village and commercial market.
+	LND-LPT-02
+	Landran Light Point / Chowk (Primary Intersection)
+	30.693400
+	76.663500
+	140307 / Sohana Police Jurisdiction
+	Main signalized intersection; primary boarding point for CTU Route 213 and college shuttles.
+	LND-UP-03
+	Landran (Up) Bus Stop (Inbound to Mohali/CHD)
+	30.693800
+	76.664200
+	140307 / Sohana Corridor
+	Served by 4 CTU routes (20, 20A, 213, 242) inbound toward Lakhnaur, Sohana, and ISBT-43.
+	LND-DN-04
+	Landran (Down) Bus Stop (Outbound to Kharar/Banur)
+	30.693100
+	76.662900
+	140307 / Kharar–Banur Hwy
+	Served by 3 CTU routes: 20 (to Kharar), 20A (to Kharar), and 242 (to Tangori).
+	CGC-LND-05
+	CGC Landran Campus Gate (Sector 112, Greater Mohali)
+	30.686500
+	76.664800
+	140307 / Sector 112, NH 205-A
+	10.9 km from ISBT-43; 11.2 km from Mohali Rly Stn; 20 km from Airport; served by CTU 242 & CGC Fleet.
+	SEC-111-06
+	Sector 111 / Bhago Majra / TDI City
+	30.675717
+	76.663500
+	140307 / Manak Majra–Sohana Link
+	Key residential/student boarding hub (TDI Connaught Place / TDI Lights) on Banur road.
+	JHJ-UNI-07
+	Jhanjeri Bus Stop / CGC University
+	30.682860
+	76.614860
+	140307 / Sadar Kharar
+	Primary terminus for CGC University (Jhanjeri) 12+ institutional bus routes.
+	To illustrate how these coordinates integrate into the wider regional topology, the schematic below maps the structural relationship between the Chandigarh terminals, the Mohali sector grid, the Landran convergence point, and the institutional campuses.
+http://googleusercontent.com/visual_element_0
+As the topological architecture demonstrates, ISBT Sector 43 acts as the primary gateway between Chandigarh's grid sectors and SAS Nagar. Commuters traveling from northern Chandigarh—such as Post Graduate Institute of Medical Education and Research (PGI), Panjab University, or Sector 17—or eastern corridors including Manimajra, Chandigarh Railway Station, and IT Park either board through-routed services (Routes 20, 20A, 242) or execute a forced transfer at ISBT-43 or Sohana. For the application's routing engine, coding ISBT-43, Sohana, and Landran Chowk as primary transfer nodes (transfer_type = 0 in GTFS transfers.txt) resolves the vast majority of multi-leg journey queries across Mohali.
+Chandigarh Transport Undertaking (CTU) Authentic Route & Timetable Database
+Landran Primary Trunk Routes (Routes 20, 20A, 242, and Suburban Feeders)
+Based on the official CTU Timetable for Local and Tricity Routes (Depot Nos. II, III, and IV, effective July 25, 2026) and Suburban Depot-III schedules, four primary CTU local/tricity routes and one suburban route directly traverse the Landran–Kharar corridor. A critical distinction for route-matching algorithms is the divergence between Route 20 and Route 20A inside Mohali: while Route 20 takes the direct YPS–Phase 7–Sohana alignment, Route 20A diverts deeper into the medical and administrative core of Mohali via Punjab State Electricity Board (PSEB), Fortis Hospital, Forest Complex, Kumbra Village, and Sector 68/69 before rejoining Sohana and Landran.
+Route No.
+	Origin & Terminus
+	Complete Verified Stop Sequence (Via)
+	Operating Window (Origin → Terminus)
+	Operating Window (Return / Special)
+	Headway / Frequency
+	20
+	ISBT-17 (CHD) ↔ Kharar
+	ISBT-17, Aroma, Sec-21 Mkt, Sec-20/21 Dividing, Sec-33/34, Sec-44/45, ISBT-43, YPS, Mohali Phase-7, Sohana, Lakhnaur, Landran, Chappar Chiri, Sante Majra, Kharar.
+	05:30 AM – 20:00 Hrs (CHD to Kharar; up to Landran/Kharar).
+	06:10 / 06:45 AM – 20:45 Hrs (Kharar to CHD). Short-turn ISBT-17→43: 05:45, 06:45, 07:45. Late Kharar→43: 19:00, 19:30, 20:00, 20:30, 21:00, 21:20.
+	15 – 30 Mins
+	20A
+	ISBT-17 (CHD) ↔ Kharar (Via Fortis)
+	ISBT-17, Aroma, Sec-21/34, Sec-33/34, Sec-44/45, ISBT-43, YPS, Phase-7, PSEB, Fortis Hospital, Forest Complex, Kumbra Village, Sec-68/69, Sohana, Lakhnaur, Landran, Chappar Chiri, Sante Majra, Kharar.
+	07:45 AM – 18:45 Hrs (Bidirectional).
+	Operates during core daytime commuter and hospital OPD hours.
+	30 – 45 Mins (Standard daytime)
+	242
+	PGI ↔ Tangori (Via CGC Landran)
+	PGI, New OPD, ISBT-17, ISBT-43, IVY Hospital (Sec-71 Mohali), Sohana, Lakhnaur, Landran (Down/Up), CGC Landran (NH 205-A), Tangori.
+	Daytime Scholar & Hospital Schedule
+	Essential direct public bus connecting PGI/ISBT-17/ISBT-43 to IVY Hospital, Landran, and Tangori.
+	3 Daily Services (Peak aligned)
+	213
+	Landran ↔ Derabassi
+	Landran, DC Office/Lakhnour, Sohana, Sec-69/68, Fortis/PSEB, Sec-62/63, Sec-51, ISBT-43, Sec-44, Sec-45, Sec-46/47, Sec-32/31 (GMCH), Tribune Chowk, Hallo Majra, Airport Chowk, Zirakpur, Singhpura, Bhankharpur, Derabassi.
+	07:00 AM – 18:55 Hrs (14 daily departures from Landran).
+	07:05 AM – 18:05 Hrs (13 daily departures from Derabassi; last arrival at Landran 19:13 Hrs).
+	55 Mins (Exact clockface)
+	Sub-Depot III
+	ISBT-17 ↔ Hansali Sahib (Via Kharar)
+	ISBT-17, ISBT-43, Mohali, Kharar, Hansali Sahib.
+	17:50 Hrs (Single evening departure from ISBT-17).
+	06:30 AM (Single morning departure from Hansali Sahib to ISBT-17 via Kharar).
+	1 Daily Round Trip
+	Complete Stop-by-Stop Timetable for CTU Route 213 (Landran ↔ Derabassi)
+Among all routes serving Landran, CTU Route 213 is uniquely structured as a cross-regional East–West connector that links the Landran junction directly to Mohali's administrative and medical sectors (DC Office in Lakhnour, Sohana, Fortis Hospital/PSEB in Phase 8), southern Chandigarh (ISBT-43, Sectors 44–47, GMCH-32 Hospital, Tribune Chowk), the Aerocity/Airport Chowk axis, Zirakpur, and Derabassi on the Ambala highway. Because Route 213 operates on an exact 55-minute departure interval with fixed stop-to-stop travel time offsets requiring 68 minutes end-to-end, it provides a highly deterministic baseline for the application's Estimated Time of Arrival (ETA) interpolation engine.
+To populate the database with exact stop-level schedules (stop_times.txt), the following two tables provide the complete outbound (Landran to Derabassi) and inbound (Derabassi to Landran) timestamp matrices for CTU Route 213. Stops 7, 16, and 17 in the outbound direction and Stops 5, 8, and 9 in the inbound direction are reconciled directly from their symmetric counterparts in the bidirectional schedule.
+Outbound Schedule: CTU Route 213 (Landran → ISBT-43 → Zirakpur → Derabassi)
+Stop No.
+	Bus Stop Name
+	Offset (Mins)
+	Trip 1 (AM)
+	Trip 2 (AM)
+	Trip 3 (AM)
+	Trip 4 (AM)
+	Trip 5 (AM)
+	Trip 6 (AM)
+	Trip 7 (PM)
+	Trip 8 (PM)
+	Trip 9 (PM)
+	Trip 10 (PM)
+	Trip 11 (PM)
+	Trip 12 (PM)
+	Trip 13 (PM)
+	Trip 14 (PM)
+	1
+	Landran
+	+00
+	07:00
+	07:55
+	08:50
+	09:45
+	10:40
+	11:35
+	12:30
+	01:25
+	02:20
+	03:15
+	04:10
+	05:05
+	06:00
+	06:55
+	2
+	DC Office / Lakhnour
+	+04
+	07:04
+	07:59
+	08:54
+	09:49
+	10:44
+	11:39
+	12:34
+	01:29
+	02:24
+	03:19
+	04:14
+	05:09
+	06:04
+	06:59
+	3
+	Sohana
+	+08
+	07:08
+	08:03
+	08:58
+	09:53
+	10:48
+	11:43
+	12:38
+	01:33
+	02:28
+	03:23
+	04:18
+	05:13
+	06:08
+	07:03
+	4
+	Sec-69/68 (Mohali)
+	+11
+	07:11
+	08:06
+	09:01
+	09:56
+	10:51
+	11:46
+	12:41
+	01:36
+	02:31
+	03:26
+	04:21
+	05:16
+	06:11
+	07:06
+	5
+	Fortis / PSEB
+	+15
+	07:15
+	08:10
+	09:05
+	10:00
+	10:55
+	11:50
+	12:45
+	01:40
+	02:35
+	03:30
+	04:25
+	05:20
+	06:15
+	07:10
+	6
+	Sec-62/63 (Phase 8)
+	+19
+	07:19
+	08:14
+	09:09
+	10:04
+	10:59
+	11:54
+	12:49
+	01:44
+	02:39
+	03:34
+	04:29
+	05:24
+	06:19
+	07:14
+	7
+	Sec-51 (CHD)
+	+23
+	07:23
+	08:18
+	09:13
+	10:08
+	11:03
+	11:58
+	12:53
+	01:48
+	02:43
+	03:38
+	04:33
+	05:28
+	06:23
+	07:18
+	8
+	ISBT-43
+	+26
+	07:26
+	08:21
+	09:16
+	10:11
+	11:06
+	12:01
+	12:56
+	01:51
+	02:46
+	03:41
+	04:36
+	05:31
+	06:26
+	07:21
+	9
+	Sec-44
+	+30
+	07:30
+	08:25
+	09:20
+	10:15
+	11:10
+	12:05
+	01:00
+	01:55
+	02:50
+	03:45
+	04:40
+	05:35
+	06:30
+	07:25
+	10
+	Sec-45
+	+34
+	07:34
+	08:29
+	09:24
+	10:19
+	11:14
+	12:09
+	01:04
+	01:59
+	02:54
+	03:49
+	04:44
+	05:39
+	06:34
+	07:29
+	11
+	Sec-46/47
+	+38
+	07:38
+	08:33
+	09:28
+	10:23
+	11:18
+	12:13
+	01:08
+	02:03
+	02:58
+	03:53
+	04:48
+	05:43
+	06:38
+	07:33
+	12
+	Sec-32/31 (Hospital)
+	+42
+	07:42
+	08:37
+	09:32
+	10:27
+	11:22
+	12:17
+	01:12
+	02:07
+	03:02
+	03:57
+	04:52
+	05:47
+	06:42
+	07:37
+	13
+	Tribune Chowk
+	+45
+	07:45
+	08:40
+	09:35
+	10:30
+	11:25
+	12:20
+	01:15
+	02:10
+	03:05
+	04:00
+	04:55
+	05:50
+	06:45
+	07:40
+	14
+	Hallo Majra
+	+49
+	07:49
+	08:44
+	09:39
+	10:34
+	11:29
+	12:24
+	01:19
+	02:14
+	03:09
+	04:04
+	04:59
+	05:54
+	06:49
+	07:44
+	15
+	Airport Chowk
+	+53
+	07:53
+	08:48
+	09:43
+	10:38
+	11:33
+	12:28
+	01:23
+	02:18
+	03:13
+	04:08
+	05:03
+	05:58
+	06:53
+	07:48
+	16
+	Zirakpur
+	+57
+	07:57
+	08:52
+	09:47
+	10:42
+	11:37
+	12:32
+	01:27
+	02:22
+	03:17
+	04:12
+	05:07
+	06:02
+	06:57
+	07:52
+	17
+	Singhpura
+	+60
+	08:00
+	08:55
+	09:50
+	10:45
+	11:40
+	12:35
+	01:30
+	02:25
+	03:20
+	04:15
+	05:10
+	06:05
+	07:00
+	07:55
+	18
+	Bhankharpur
+	+64
+	08:04
+	08:59
+	09:54
+	10:49
+	11:44
+	12:39
+	01:34
+	02:29
+	03:24
+	04:19
+	05:14
+	06:09
+	07:04
+	07:59
+	19
+	Derabassi
+	+68
+	08:08
+	09:03
+	09:58
+	10:53
+	11:48
+	12:43
+	01:38
+	02:33
+	03:28
+	04:23
+	05:18
+	06:13
+	07:08
+	08:03
+	Inbound Schedule: CTU Route 213 (Derabassi → Zirakpur → ISBT-43 → Landran)
+Stop No.
+	Bus Stop Name
+	Offset (Mins)
+	Trip 1 (AM)
+	Trip 2 (AM)
+	Trip 3 (AM)
+	Trip 4 (AM)
+	Trip 5 (AM)
+	Trip 6 (AM)
+	Trip 7 (PM)
+	Trip 8 (PM)
+	Trip 9 (PM)
+	Trip 10 (PM)
+	Trip 11 (PM)
+	Trip 12 (PM)
+	Trip 13 (PM)
+	1
+	Derabassi
+	+00
+	07:05
+	08:00
+	08:55
+	09:50
+	10:45
+	11:40
+	12:35
+	01:30
+	02:25
+	03:20
+	04:15
+	05:10
+	06:05
+	2
+	Bhankharpur
+	+04
+	07:09
+	08:04
+	08:59
+	09:54
+	10:49
+	11:44
+	12:39
+	01:34
+	02:29
+	03:24
+	04:19
+	05:14
+	06:09
+	3
+	Singhpura
+	+08
+	07:13
+	08:08
+	09:03
+	09:58
+	10:53
+	11:48
+	12:43
+	01:38
+	02:33
+	03:28
+	04:23
+	05:18
+	06:13
+	4
+	Zirakpur
+	+11
+	07:16
+	08:11
+	09:06
+	10:01
+	10:56
+	11:51
+	12:46
+	01:41
+	02:36
+	03:31
+	04:26
+	05:21
+	06:16
+	5
+	Airport Chowk
+	+15
+	07:20
+	08:15
+	09:10
+	10:05
+	11:00
+	11:55
+	12:50
+	01:45
+	02:40
+	03:35
+	04:30
+	05:25
+	06:20
+	6
+	Hallo Majra
+	+19
+	07:24
+	08:19
+	09:14
+	10:09
+	11:04
+	11:59
+	12:54
+	01:49
+	02:44
+	03:39
+	04:34
+	05:29
+	06:24
+	7
+	Tribune Chowk
+	+23
+	07:28
+	08:23
+	09:18
+	10:13
+	11:08
+	12:03
+	12:58
+	01:53
+	02:48
+	03:43
+	04:38
+	05:33
+	06:28
+	8
+	Sec-32/31 (Hospital)
+	+26
+	07:31
+	08:26
+	09:21
+	10:16
+	11:11
+	12:06
+	01:01
+	01:56
+	02:51
+	03:46
+	04:41
+	05:36
+	06:31
+	9
+	Sec-46/47
+	+30
+	07:35
+	08:30
+	09:25
+	10:20
+	11:15
+	12:10
+	01:05
+	02:00
+	02:55
+	03:50
+	04:45
+	05:40
+	06:35
+	10
+	Sec-45
+	+34
+	07:39
+	08:34
+	09:29
+	10:24
+	11:19
+	12:14
+	01:09
+	02:04
+	02:59
+	03:54
+	04:49
+	05:44
+	06:39
+	11
+	Sec-44
+	+38
+	07:43
+	08:38
+	09:33
+	10:28
+	11:23
+	12:18
+	01:13
+	02:08
+	03:03
+	03:58
+	04:53
+	05:48
+	06:43
+	12
+	ISBT-43
+	+42
+	07:47
+	08:42
+	09:37
+	10:32
+	11:27
+	12:22
+	01:17
+	02:12
+	03:07
+	04:02
+	04:57
+	05:52
+	06:47
+	13
+	Sec-51 (CHD)
+	+45
+	07:50
+	08:45
+	09:40
+	10:35
+	11:30
+	12:25
+	01:20
+	02:15
+	03:10
+	04:05
+	05:00
+	05:55
+	06:50
+	14
+	Sec-62/63 (Phase 8)
+	+49
+	07:54
+	08:49
+	09:44
+	10:39
+	11:34
+	12:29
+	01:24
+	02:19
+	03:14
+	04:09
+	05:04
+	05:59
+	06:54
+	15
+	Fortis / PSEB
+	+53
+	07:58
+	08:53
+	09:48
+	10:43
+	11:38
+	12:33
+	01:28
+	02:23
+	03:18
+	04:13
+	05:08
+	06:03
+	06:58
+	16
+	Sec-69/68 (Mohali)
+	+57
+	08:02
+	08:57
+	09:52
+	10:47
+	11:42
+	12:37
+	01:32
+	02:27
+	03:22
+	04:17
+	05:12
+	06:07
+	07:02
+	17
+	Sohana
+	+60
+	08:05
+	09:00
+	09:55
+	10:50
+	11:45
+	12:40
+	01:35
+	02:30
+	03:25
+	04:20
+	05:15
+	06:10
+	07:05
+	18
+	DC Office / Lakhnour
+	+64
+	08:09
+	09:04
+	09:59
+	10:54
+	11:49
+	12:44
+	01:39
+	02:34
+	03:29
+	04:24
+	05:19
+	06:14
+	07:09
+	19
+	Landran
+	+68
+	08:13
+	09:08
+	10:03
+	10:58
+	11:53
+	12:48
+	01:43
+	02:38
+	03:33
+	04:28
+	05:23
+	06:18
+	07:13
+	SAS Nagar (Mohali), Kharar, Mullanpur, and Tricity Feeder Network
+Beyond the direct Landran trunk, a comprehensive regional application must incorporate the broader SAS Nagar (Mohali) and Tricity CTU network so that commuters in Mohali Phases 1–11, Balongi, Kharar, Mullanpur, Panchkula, and Chandigarh can compute single-transfer journeys to Landran or the CGC campuses. For example, a passenger in Mohali Phase 11 or Industrial Area Phase 9 does not have a single-seat CTU ride to Landran; instead, the commuter boards Route 8 or the Manimajra–Mohali Phase 9/11 corridor to PSEB/Fortis (Phase 8) or ISBT-43, and transfers onto Routes 20, 20A, 213, or 242. Similarly, passengers along the northern Kharar highway (Balongi, Daun, Desu Majra, Mundi Kharar, Sector 123/124/125) utilize the northern Kharar CTU routes to reach Kharar Bus Stand, where they connect with Route 20, Route 20A, or local shuttles heading south to Landran. Meanwhile, certain legacy alignments—such asMohali Phase V internal loops or closed circular variants—lack active CTU service despite having physical bus stop shelters, requiring the routing engine to direct passengers toward active arterial corridors.
+Route ID / Classification
+	Origin & Terminus
+	Complete Verified Stop Sequence (Via)
+	Operating Hours & Headway
+	Route 8 (Mohali–PGI)
+	Mohali Phase-XI ↔ PGI
+	Mohali Ph-XI, Sec-49/48, Jagatpura, Sec-47 Mkt, 46 Mkt, 45 Mkt, 44 Mkt, ISBT-43, Sec-44/43, 35/34, Aroma, Sec-22/17, 16/17, 16/10 (Hospital), PEC, New OPD, PGI (vice versa).
+	06:05 AM – 20:50 Hrs
+	Route 39 / 45
+	Mohali Ph-11 ↔ PGI (Via Mohali Rly Stn)
+	Mohali Railway Station, Indl. Area Ph-9, Mohali Sec-66/67 Mkts, Ph-11/10, Sec-49/48, 48 Mkt, 47 Mkt, 46 Mkt, 45 Mkt, 44 Mkt, ISBT-43, Sec-43/44, 35/34, 22/17, 16/10, OPD, PGI.
+	Daytime commuter service (39 km route length)
+	Mohali Ph-9/11 – Manimajra
+	Manimajra / Rly Stn ↔ Mohali Ind. Area Ph-9 / ISB-81
+	Manimajra, H.B. Chowk, Rly Crossing, Rly Stn, CTU W/Shop, Sec-28/26 G.Mkt, 27/19, 30/20, 32/33, 46/45, 49/50, 50 Mkt, 50/51, Sec-62/63, Phase-VIII, PSEB, 63 Mkt, 64/63, 68/67, 67/80, Sec-66/ISB-81, Ind. Area Ph-9 Mohali, Ph-11 Outer, Sec-48/Jagatpura, 47 Outer, Ram Darbar, Ind. Area Ph-2, Tribune Chowk, Sec-29, 28 P/Pump, Rly Stn, Manimajra.
+	05:40 AM (from Rly Stn) / 06:10 AM (from MM) – 20:45 Hrs
+	Route 4A (Circular)
+	ISBT-43 ↔ ISBT-43 (Via Mohali Ph-6)
+	ISBT-43, Sec-43/44, 35/34, Aroma, 22/17, 16/17, Rose Garden, 16/10 Hospital, OPD, PGI, Khuda Lahora, IRB Complex, Sukhna Path Barrier, Dhanas, DMC, CTU Depot-III, Sec-38 West, Maloya, Mohali Phase-6, Old Barrier, Franco Hotel, Badheri Chowk, Sec-40/41, 41 Mkt, 42 Mkt, ISBT-43.
+	06:45 AM – 19:40 Hrs (Clockwise); 07:25 AM – 20:20 Hrs (Counter-clockwise); 25 Mins headway
+	Kharar North-A
+	ISBT-17 ↔ Mundi Kharar (Direct via Sec 36/40)
+	ISBT-17, Aroma, Sec-35/22, Kissan Bhawan, Sec-35/36, Attawa, Sec-36/37, 40/41, Furniture Chowk, Mohali Ph-2, Ph-6, Balongi, Daun, Desu Majra, Mundi Kharar (vice versa).
+	05:40 AM – 19:00 Hrs
+	Kharar North-B
+	ISBT-17 ↔ Mundi Kharar (Via ISBT-43)
+	ISBT-17, Aroma, Sec-35/22, Kissan Bhawan, Sec-35/36, Attawa, ISBT-43, Furniture Chowk, Mohali Ph-2, Ph-6, Balongi, Daun, Desu Majra, Mundi Kharar (vice versa).
+	05:50 AM / 06:40 AM onwards
+	Sec-123 Corridor
+	ISBT-17 ↔ Sector-123 (Kharar/Sunny Enclave)
+	ISBT-17, Sec-16/17, 16/10, 11/15, PEC, New OPD, PGI, Sec-14/15, 24/25, 37/38, 40/41, P.B. Barrier, Balongi, Daun, KFC, Jalvayu Tower, Sec-124/125, Sec-123 (vice versa).
+	06:00 AM onwards
+	Route 28A
+	ISBT-43 ↔ Rani Majra (Omaxe Ph-II)
+	ISBT-43, Sec-43/44, 35/34, 23/22, ISBT-17, 17/9, KC/16/10, 11/15, PGI, Khuda Lahora, S.P. Barrier, Mullanpur, Eco-City, DLF Chowk, Todde Majra, Rasulpur, Omaxe Phase-II (vice versa).
+	08:25 AM – 18:00 Hrs
+	Route 28B
+	ISBT-43 ↔ Eco City Block-2 (Takipur)
+	ISBT-43, Sec-42/43, Attawa, 36/35, 37/24, 38/25, DMC, Dhanas, S/P Barrier, Mullanpur, Homi Bhabha, Parol, Majra T-Point, Hoshiarpur, Eco City (Takipur) (vice versa).
+	06:15 AM – 19:45 Hrs (to Takipur); 05:50 AM – 21:00 Hrs (to ISBT-43)
+	Nayagaon / Karoran
+	ISBT-17 ↔ Badi Karoran
+	ISBT-17, Sec-16/17 MC, Sec-16/10 Matka Chowk, GMCH-16, Sec-15/11, PGI, Khuda Lahora Mod (GHS Sec-12), UT Border, Nayagaon Gate-1, Gate-2, Gate-3, Nada Bridge, Singha Devi Bridge, Badi Karoran.
+	Standard daytime local schedule
+	Route 2F
+	PGI ↔ Platinum Homes (Dhakoli)
+	PGI, New OPD, Sec-2/11, 10/16, 17/16, ISBT-17, 17/18, 8/18, 7/19, 26/27, 26/28 G.Mkt, TPT Area, CTU W/S, Rly Stn, Rly Crossing, H.B. Chowk, Panchkula Sec-8/17, 9/16, 10/15, 11/12, Pkl Bus Stand, Sec-4 Pkl, Sec-21 Pkl, Sec-20 Pkl, Sushma Square/Dhakoli, Platinum Homes.
+	05:40 AM – 18:20 Hrs
+	Route 216 & Derabassi
+	ISBT-43 / PGI ↔ Zirakpur & Derabassi
+	Connects PGI and ISBT-43 through Chandigarh stops to Zirakpur and Derabassi.
+	07:15 AM – 19:40 Hrs (from PGI); 06:30 AM – 20:50 Hrs (from Derabassi); 45 Mins headway
+	Route 1
+	New Maloya Colony ↔ Manimajra
+	Dadu Majra Village, CTU W/S, Sec-25/38, 24/25, PGI, 15 Mkt, 16 Mkt, 17/16, ISBT-17, 18 Mkt, 19 Mkt, 27 Mkt, 28 Mkt, CTU W/Shop, Rly Stn, Rly Crossing, Kalagram, H/B Chowk, Manimajra.
+	06:10 AM – 17:20 Hrs
+	Route 2C (Circular)
+	Manimajra ↔ Manimajra
+	H.B. Chowk, Kalagram, Rly Stn, CTU W/Shop, Colony No-4, Elante Mall, Sec-29/28, 30/27, 20/19, 21/18, 22/17, 16/23, 15/24, 24/25, 38/25, CTU W/Shop, DMC, Dhanas, SP Barrier, K. Lahora, PGI, 11/15, 10/16, ISBT-17, 8/18, 7/19, 26/28, G.Mkt, Rly Crossing, M.M. Town, Indra Colony.
+	05:30 AM – 20:20 Hrs
+	Route 5A / 5C
+	Ram Darbar ↔ Ram Darbar
+	Sec-47 Mkt, 46, 45, 44 Mkts, ISBT-43, 42, 41, 40, 39 Mkts, Maloya, 38W/39, 38/40, 38/37, 25/24, 14/15, Panjab Uni., PGI, 11/15, 10/16, 9/17, 8/18, 7/19, 26/27, 28/27, 29/30, 31/32, 47/46, 47 Mkt.
+	05:25 / 05:50 AM – 21:25 Hrs; 15 – 30 Mins headway
+	Route 14
+	ISBT-43 ↔ Mansa Devi
+	ISBT-43, Sec-43/44, 35/34, 23/22, ISBT-17, Sec-8/9, Lake Chowk, Kishangarh, IT Park, Mansa Devi Complex. (Alternate via 21/20/27/28 Mkts, Rly Stn, Manimajra).
+	08:30 AM – 14:30 Hrs (Via IT Park); 06:00 AM onwards, 30 Mins headway (Via Manimajra)
+	Route 22
+	ISBT-43 ↔ IT Park
+	ISBT-43, Sec-42/43, 36/35, 23/22, ISBT-17, 17/18 L/Point, 18, 19, 27, 28 Mkts, CTU W/S, Rly Stn, Rly Crossing, H/B Chowk, Manimajra, Kishangarh, IT Park.
+	05:40 AM – 19:20 Hrs (from ISBT-43); 06:50 AM – 20:30 Hrs (from IT Park); 20 Mins headway
+	Route 24C (Night)
+	ISBT-17 ↔ ISBT-43 (Night Shuttle)
+	ISBT-17, Sec-22/23, Sec-35/36, Attawa, Sec-42/43, ISBT-43 (vice versa).
+	22:00 Hrs – Late Night (Critical inter-terminal night link)
+	Route 30 / 30B
+	ISBT-43 ↔ Nada Sahib / Ramgarh
+	ISBT-43, Sec-42/43, Attawa, 36/35, 23/22, ISBT-17, Aroma, 21, 20, 19 Mkts, 19/27, 26 G.Mkt, Rly Crossing, Kalagram, H.Board, Manimajra/Pkl Sec-11/12/4, Command Hospital, Nada Sahib / Ramgarh.
+	06:35 AM onwards
+	CTU Suburban & Regional Feeder Schedules (Depot-III)
+For commuters traveling into the Tricity and Mohali from surrounding semi-urban towns—specifically Ambala Cantt, Kurali, Ropar, Nalagarh, Morinda, Chamkaur Sahib, Baddi, and Kalka—CTU Depot-III operates dedicated suburban services. Integrating these schedules enables the application to serve inter-district daily commuters who transfer onto Mohali/Landran buses at ISBT-17, ISBT-43, or Kharar.
+Corridor
+	Origin Terminal
+	Verified Departure Timings & Operating Span
+	Return Schedule & Operational Notes
+	ISBT-17 ↔ Ambala Cantt
+	ISBT Sector 17
+	21 Daily Departures: 06:30, 07:00, 07:30, 08:20, 09:00, 09:15, 09:30, 10:00, 10:15, 10:30, 12:00, 12:30, 12:40, 13:00, 13:20, 13:30, 15:30, 16:00, 16:30, 19:20, 19:50.
+	Return from Ambala Cantt starts at 05:00 AM.
+	ISBT-17 ↔ Kurali (Via Mullanpur)
+	ISBT Sector 17
+	05:15 AM – 20:15 Hrs (Continuous suburban corridor through Mullanpur).
+	Connects northern SAS Nagar rural belt into PGI and ISBT-17.
+	ISBT-43 ↔ Ropar
+	ISBT Sector 43
+	06:45 AM onwards (via Kharar–Kurali–Ropar NH-205).
+	Return from Ropar to ISBT-43 starts at 05:10 AM and 06:25 AM.
+	ISBT-43 ↔ Nalagarh (Via Ropar)
+	ISBT Sector 43
+	08:16 AM departure from ISBT-43.
+	Return from Nalagarh to ISBT-43 via Ropar departs at 07:10 AM.
+	ISBT-43 ↔ Chamkaur Sahib (Via Morinda)
+	ISBT Sector 43
+	17:00 Hrs evening departure from ISBT-43.
+	Return from Chamkaur Sahib to ISBT-43 via Morinda departs at 06:30 AM.
+	ISBT-43 ↔ Kalka
+	ISBT Sector 43
+	06:25 AM – 18:20 Hrs.
+	Return from Kalka to ISBT-43 operates 07:25 AM – 19:40 Hrs (9 trips).
+	ISBT-43 ↔ Baddi (Via Pinjore)
+	ISBT Sector 43
+	06:30 AM – 16:30 Hrs.
+	Return from Baddi to ISBT-43 departs at *08:30 AM*.
+	ISBT-43 ↔ Haripur (Via Pinjore)
+	ISBT Sector 43
+	Operates up to 17:50 Hrs from ISBT-43.
+	Return from Haripur departs at 05:00 AM, 09:15 AM, and 15:15 Hrs.
+	ISBT-43 ↔ Shehjadpur (Via Jatwad)
+	ISBT Sector 43
+	16:20 Hrs departure from ISBT-43.
+	Return from Shehjadpur to ISBT-43 departs at 08:00 AM.
+	## Institutional Transit Layer: CGC University (Jhanjeri) & CGC Landran Fleet Data
+Operational Architecture of the CGC Transport Network
+A major value proposition for an application targeting Mohali, Landran, and CGC University is the inclusion of dedicated college bus routes alongside public CTU buses. While CGC Landran (Sector 112) and CGC University (Jhanjeri) share the overarching Chandigarh Group of Colleges educational brand, their physical campuses, academic schedules, and bus routing tables must be clearly differentiated in the application's user interface.
+CGC Landran, located on the Kharar–Banur Highway in Sector 112, Greater Mohali, spans a 30-acre campus established in 2001 and encompasses Chandigarh Engineering College (CEC), CGC College of Engineering (CGC-COE), Chandigarh College of Pharmacy (CCP), Chandigarh College of Hotel Management & Catering Technology (CCHMCT), Chandigarh College of Technology (CCT), and Chandigarh Business School of Administration (CBSA). Standard academic classes at CGC Landran run from 09:15 AM to 04:35 PM, while administrative offices operate from 09:00 AM to 05:00 PM and orientation or special academic sessions convene in slots at 09:00 AM and 11:30 AM. The CGC Landran fleet provides daily pick-and-drop services for day scholars and faculty across Chandigarh, Mohali, Panchkula, Manimajra, Ropar, Kurali, Kharar, Banur, Rajpura, Patiala, Morinda, Mandi Gobindgarh, Khanna, Sirhind, Fatehgarh Sahib, Bassi Pathana, Samrala, Ludhiana, Ambala, and Roorkee. Annual student transport fees at CGC Landran range from ₹20,000 to ₹30,000 depending on the boarding route and distance.
+Conversely, CGC University, Mohali (Jhanjeri Campus) operates an independent, GPS-tracked fleet equipped with speed governors, first-aid kits, and CCTV surveillance on select routes, engineered to deliver students and faculty to the Jhanjeri campus between 08:50 AM and 09:10 AM. Afternoon return trips depart the campus following the conclusion of lectures (typically between 04:40 PM and 05:00 PM) along the exact reverse stop sequences. For student verification, route inquiries, and live dispatch escalations, the application should embed the verified institutional transport contact directory detailed below.
+Institutional Entity / Role
+	Verified Contact Numbers
+	Official Email / Digital Portal
+	Operational Hours & Scope
+	CGC Landran Transport & Toll-Free Desk
+	Toll-Free: 1800-200-3575 PBX: 0172-3984200 (Fax: 0172-3984207)
+	info@cgc.edu.in https://www.cgc.edu.in
+	Monday–Sunday: 09:00 AM – 05:00 PM (General & Transport Desk) / 10:00 AM – 07:00 PM (Booking).
+	CGC Landran Admissions & Student Support
+	+91-95921-04444 (WhatsApp) +91-95921-14444, +91-95921-24444, +91-95922-14444
+	admissions@cgc.edu.in https://orientation2026.cgc.edu.in
+	Handles student ERP onboarding, bus fee structure queries, and route allocation.
+	CGC University / Jhanjeri Transport Incharge
+	Master Transport Incharge: +91-94166-48137 CHD Route Incharge (Sanchi Rawat): +91-90561-83065
+	https://www.cgcuniversity.in/transport-facility
+	Real-time morning dispatch, bus breakdown management, and driver coordination.
+	Complete Stop-by-Stop Route & Timing Directory for CGC University / Jhanjeri (2025–26 / 2026–27)
+The following master table synthesizes the official 2025–26/2026 route chart and exact stop-by-stop morning pickup timestamps for the CGC University / Jhanjeri fleet.
+Route ID / Corridor Name
+	Complete Sequential Pickup Points & Verified Morning Departure Timings
+	Campus Arrival Time
+	CGC-R01: CHD / Naya Gaon → Mohali Ph-2 → Campus
+	1. Khuda Lahora (07:40 AM) → 2. Naya Gaon (07:45 AM) → 3. Sec 14/15 CHD (07:50 AM) → 4. Sec 23/24 Junction (08:00 AM) → 5. Sec 23/24 Lights (08:05 AM) → 6. Sec 22/23 Lights (08:10 AM) → 7. Kisaan Bhawan (08:12 AM) → 8. Sec 36/37 Lights (08:15 AM) → 9. Sec 40/41 Roundabout Pansora (08:20 AM) → 10. Mohali Phase 2 Gian Jyoti (08:25 AM) → 11. CGC Campus.
+	09:10 AM
+	CGC-R02: CHD / Dhanas / Maloya / Balongi → Campus
+	1. Dhanas (07:35 AM) → 2. Khuda Lahora (07:40 AM) → 3. Mullanpur Garibdas (07:48 AM) → 4. Daddu Majra Lights (07:53 AM) → 5. Sec 38 West Daddu Majra (07:55 AM) → 6. Sec 38 West Gurdwara Sahib (07:57 AM) → 7. Maloya (08:03 AM) → 8. Green Enclave Daun (08:20 AM) → 9. TDI Lights (08:30 AM) → 10. CGC Campus.
+	08:50 AM
+	CGC-R03A: Central CHD (Sec 7/17/20/43) → Mohali Ph-7 (Incharge: Sanchi Rawat, 9056183065)
+	1. Sec 7/8 Petrol Pump CHD (07:40 AM) → 2. Sec 17 Parade Ground (07:45 AM) → 3. Sec 19/27 Lights (07:50 AM) → 4. Sec 20 CHD (08:00 AM) → 5. Sec 33 Lights (08:10 AM) → 6. Sec 45 CHD (08:15 AM) → 7. Sec 44/45 CHD (08:20 AM) → 8. Sec 43/44 CHD (08:25 AM) → 9. Sec 44/51 Round (08:30 AM) → 10. Sec 51 CHD (08:40 AM) → 11. Phase 7 Chawla Lights, Mohali (08:50 AM) → Campus.
+	09:05 AM (Est.)
+	CGC-R03B: Bus CHO4L1127 (CHD Sec 7/8 & Ambala Cantt)
+	Sec 7/8 Petrol Pump CHD Side, Rampura Mod Ambala (07:15 AM), DAV River Side (07:20 AM), Pooja Petrol Pump (07:22 [span_33](start_span)[span_33](end_span)[span_61](start_span)[span_61](end_span)AM), Mahesh Nagar, Gobind Chowk, Civil Hospital, Bus Stand Ambala Cantt → CGC University, Mohali.
+	09:00 AM
+	CGC-R04: Ambala City / Manav Chowk / Banur → Campus
+	1. Durga Nagar (07:30 AM) → 2. Singhawala (07:32 AM) → 3. Jalbera Road (07:35 AM) → 4. Sector-10 Ambala (07:40 AM) → 5. Gobind Chowk → 6. Manav Chowk (07:45 AM) → 7. Aggarsein Chowk (07:50 AM) → 8. HP Petrol Pump (07:57 AM) → 9. Inco (07:59 AM) → 10. Jandali → Banur (08:20 AM) → Mota Majra (08:30 AM) → 11. CGC Campus.
+	09:00 AM
+	CGC-R05: Ambala Cantt via Lalru & Airport Chowk → Campus
+	1. Defence Colony (07:05 AM) → 2. Gurmandi (07:15 AM) → 3. Geeta Chowk (07:20 AM) → 4. Janta Sweets (07:25 AM) → 5. Ambala Cantt Bus Stand (07:30 AM) → 6. Baldev Nagar (07:45 AM) → 7. Airport Chowk Lights Mohali (08:15 AM) → 8. CGC Campus.
+	09:10 AM
+	CGC-R06: Patiala (YPS / Fountain Chowk) / Chunni → Campus
+	1. YPS Chowk → 2. Fountain Chowk → 3. Gurudwara Dukh Niwaran Sahib → 4. Dana Mandi → 5. Hemkunt Petrol Pump → 6. By Pass → 7. Avtar Kanda → 8. Baran → 9. Faggan Majra → 10. Challela Gate → 11. Jakhwali → 12. Kharoura (Main Market) → 13. Kharoura Turn Towards Sadhugarh → Hansali / Chunni → 14. CGC University, Mohali.
+	09:00 AM (Est.)
+	CGC-R07: Ludhiana / Sahnewal / Doraha / Sirhind → Campus
+	1. Sherpur Chowk → 2. Dholewal Chowk → 3. Jagraon Bridge → 4. Jalandhar Bypass → 5. Kailash Nagar (Tibba Rd) → 6. Samrala Chowk → 7. Vardmaan Chowk → 8. Police Colony → 9. Jamalpur → 10. Jain School → 11. Veer Palace → 12. Fortis Hospital LDH (07:30 AM) → 13. Dhandhari (07:40 AM) → 14. Sahnewal (07:50 AM) → 15. Doraha (07:55 AM) → 16. Beeja (08:05 AM) → 17. Old Bridge Sirhind Bus Stand → 18. Sirhind Railway Bridge → 19. CGC Campus.
+	09:05 AM (Est.)
+	CGC-R08A: Ropar / Morinda / Kurali → Campus
+	1. Ropar → 2. Chamkaur Sahib → 3. Pipal Majra (07:40 AM) → 4. Lutheri (07:45 AM) → 5. Morinda (07:55 AM) → 6. Kurali (08:10 AM) → 7. Chanalon (08:15 AM) → CGC Campus.
+	09:00 AM (Est.)
+	CGC-R08B: Patiala (Pbi Uni) / Rajpura / Banur → Campus
+	Polytechnic Chowk (07:15 AM), Kalka Chowk (07:1[span_42](start_span)[span_42](end_span)[span_70](start_span)[span_70](end_span)7 AM), Manji Sahib (07:20 AM), Lutheri Inn Patiala, Punjabi University Patiala, Commando Complex Patiala, Mahindra Agency, Liberty Chowk Rajpura, Durga Mandir Rajpura, ITI Chowk Rajpura, Gagan Chowk Rajpura, Banur (08:20 AM), Mota Majra (08:30 AM), CGC University, Mohali.
+	09:00 AM (Est.)
+	CGC-R09: Khanna / Mandi Gobindgarh / Sirhind / FGS → Campus (Incharge: 9416648137)
+	1. A.S. College Khanna (07:40 AM) → 2. Jarg Chowk (07:50 AM) → 3. Samrala Chowk (07:52 AM) → 4. Bikaner Sweets (07:54 AM) → 5. Jain Sweets (07:58 AM) → 6. GPS (08:07 AM) → 7. MGG Bus Stand (08:08 AM) → 8. MGG Lights Chowk (08:10 AM) → 9. Sirhind 4 No. Chungi (08:30 AM) → 10. Deepak Scan Center (08:31 AM) → 11. Aam Khas Baagh (08:32 AM) → 12. Fatehgarh Sahib Curve (08:35 AM) → 13. Modern Valley (08:38 AM) → 14. Ambar City (08:39 AM) → 15. CGC Campus.
+	09:10 AM
+	CGC-R10: MDC / IT Park / Manimajra / Fortis / Sohana → Campus
+	1. Sec 5 MDC Petrol Pump (07:35 AM) → 2. IT Park (07:45 AM) → 3. Indira Colony (07:50 AM) → 4. Manimajra (07:55 AM) → 5. Kalagram (08:00 AM) → 6. Sec 26 Transport Chowk (08:03 AM) → 7. Sec 29/30 Lights (08:08 AM) → 8. Sec 32 Lights (08:10 AM) → 9. Sec 49 Cycle Chowk (08:20 AM) → 10. PCA Stadium Lights (08:25 AM) → 11. Fortis Lights (08:27 AM) → 12. Forest Complex (08:29 AM) → 13. Grecian Hospital (08:31 AM) → 14. Army Institute of Law (08:33 AM) → 15. Sohana (08:38 AM) → 16. Sec 77 Lights (08:40 AM) → 17. CGC Campus.
+	09:00 AM (Est.)
+	CGC-R11A: Peermushalla / Zirakpur / Mohali Ph-10/11 / Landran → Campus (Incharge: 9416648137)
+	1. Peermushalla Sec 20 PKL (07:40 AM) → 2. Sec 20 PKL (07:45 AM) → 3. Zirakpur (07:55 AM) → 4. Airport Chowk (08:00 AM) → 5. CRPF Chowk (08:02 AM) → 6. Hallo Majra (08:05 AM) → 7. Ram Darbar (08:10 AM) → 8. Sec 32 Lights CHD (08:15 AM) → 9. Sec 46/47 Lights CHD (08:20 AM) → 10. Sec 48/49 Lights CHD (08:23 AM) → 11. Gurudwara Ph-10 Mohali (08:25 AM) → 12. Ph-10/11 Lights Mohali (08:27 AM) → 13. Ph-10 Stadium Lights (08:30 AM) → 14. Sec 67/68 Lights Mohali (08:35 AM) → 15. Sec 78/79 Lights Mohali (08:40 AM) → 16. Landran Chowk (08:55 AM) → 17. CGC Campus.
+	09:05 AM
+	CGC-R11B: Panchkula / K-Area / Dhakoli / Zirakpur / Airport Rd → Campus
+	Sec 21 PKL, Sec 20 Shekho Banquet PKL, Sec 19 City Court PKL, M.S. Enclave Dhakoli (07:50 AM), Dhakoli Fatak (07:51 AM), Bauli Sahib Gurudwara Dhakoli (07:53 AM), K-Area/Baltana Lights ZKP, Patiala Lights ZKP (07:57 AM), Lucky Dhaba/Sky Net Tower ZKP, AKM/Lohagarh Gurudwara ZKP, SBP (08:05 AM), Mubarakpur (08:15 AM), Bhankharpur (08:25 AM), McDonald's (08:30 AM), Uniqlo (08:35 AM), Airport Road, Landran, CGC Campus.
+	09:10 AM
+	CGC-R11C: Pinjore / Panchkula Core → CHD Sec-28 → Campus
+	Mallaha Mod (07:30 AM), HMT (07:35 AM), Surajpur (07:[span_53](start_span)[span_53](end_span)[span_81](start_span)[span_81](end_span)37 AM), Amravati (07:40 AM) / 1. Singh Dwar (07:35 AM) → 2. Tank Chowk (07:40 AM) → 3. Sec 2/4 PKL (07:42 AM) → 4. Sec-12 PKL (07:45 AM) → 5. Ralley Chowk (07:48 AM) → 6. Sec 11/15 Chowk (07:49 AM) → 7. Amartex Chowk PKL (07:50 AM) → 8. Sec-15 Petrol Pump (07:50 AM) → 9. CID Chowk Sec-19 PKL (07:53 AM) → 10. Bell Factory Lights PKL (08:00 AM) → 11. Sec-9 PKL (08:03 AM) → 12. Sec 16/8 Chowk (08:03 AM) → 13. Sec 17/7 Chowk (08:04 AM) → 14. Housing Board PKL (08:05 AM) → 15. Sec-28 CHD (08:15 AM) → 16. CGC Campus.
+	09:00 AM
+	CGC-R12: Kharar Local Feeder → Landran → Campus
+	1. Omega City → 2. Shivjot → 3. Gopal Sweets → 4. Nijjar Chowk → 5. Mundi Kharar → 6. City Heart → 7. Jhungian Road → 8. Kharar Bus Stand → 9. Prime City → 10. Shivalik City → 11. Landran → 12. CGC University, Mohali.
+	09:00 AM (Est.)
+	Adjacent Institutional Shuttle Overlaps (CU Pb & Chitkara Benchmarks)
+To prevent boarding confusion at shared stops across Chandigarh, Mohali, Aerocity, and TDI City (near CGC Landran), the application must also disambiguate overlapping institutional buses operated by neighboring universities—specifically Chandigarh University (CU (Pb)) and Chitkara University—that sweep through identical junctions between 07:35 AM and 08:45 AM. At TDI City (Near CGC College, Sector 110/111), 52-seater institutional buses on Routes 11, 12, and 13 serving CU (Pb) pass the junction at 08:45 AM, whereas CGC's Route 02 passes TDI Lights 15 minutes earlier at 08:30 AM. Similarly, along the Sector 22/23/24, Sector 50/51 Jail Road, and Aerocity corridor, CU (Pb) Route 04 picks up passengers at Sector 24 Market (07:35 AM), Sector 23 Market (07:38 AM), Sector 22 Market (07:40 AM), Sector 51 Market Jail Road Beat Box (07:40 AM), Sector 51/50 Chowk (07:42 AM), Sector 50 BSNL Colony (07:45 AM), Aerocity Lights Falkon JLPL (08:00 AM), Aerocity Lights B Block (08:10 A[span_57](start_span)[span_57](end_span)[span_85](start_span)[span_85](end_span)M), and Aerocity Lights I Block (08:12 AM), before arriving at CU (Pb) at 08:45 AM. Along the central Chandigarh and Zirakpur corridor, CU (Pb) Route 12 boards at Sector 23/16 Dividing (07:45 AM), Sector 17 Bus Stand (07:48 AM), Sector 48 Motor Market Chowk (07:49 AM), Sector 19/27 Chowk (07:56 AM), Hallo Majra Lights (08:03 AM), and Paras Down Town Zirakpur (08:05 AM), reaching its campus terminus at 08:45 AM. Labeling each institutional route with a distinct operator badge (CGC Landran, CGC University Jhanjeri, or CU Pb) eliminates passenger misboarding during the 07:40 AM–08:50 AM peak window.
+Punjab State Transit (PRTC & PUNBUS) Regional Corridors & Fare Engine
+Fare Revision Mechanics, Rounding Rules, and KM-Scheme Enforcement
+For intercity journeys across Punjab and connecting into Chandigarh and Mohali—which primarily terminate at ISBT Sector 43 for Punjab, Himachal Pradesh, and Jammu & Kashmir services, or ISBT Sector 17 for Delhi, Haryana, Uttar Pradesh, and Rajasthan services—the application must implement the official fare and operational rules governing Pepsu Road Transport Corporation (PRTC), Punjab Roadways (PUNBUS), and private stage-carriage operators. Following a state Value-Added Tax (VAT) increase of 61 paise per litre on petrol and 92 paise per litre on diesel, the Punjab government enacted a state-wide bus fare hike of 23 paise per kilometer across Punjab Roadways, PRTC, and private players, a fiscal measure projected to generate ₹150 crore in additional annual revenue. Crucially for the application's fare estimator, bus conductors in Punjab do not charge fractional rupee amounts; all calculated stage fares are rounded up to the nearest multiple of ₹5, meaning a computed fare of ₹12.50 is billed to the passenger at ₹15.00, with minimum base slabs starting at ₹10, ₹25, and ₹30.
+This fare structure directly supports the financial sustainability of PRTC, which operates from its own operational revenues rather than direct state funding. PRTC manages an active fleet of 1,184 buses, of which 244 are ordinary and Non-AC corporation buses while the remainder operate under the Kilometre Scheme and HVAC/Integral Coach tiers. The corporation generates daily ticket receipts between ₹2.5 crore and ₹3.0 crore, with approximately ₹1.3 crore collected as direct cash receipts and 50% accounted for by state-mandated concessional travel, making service disruptions—such as employee strikes over Kilometre Scheme tenders—costly at roughly ₹30 lakh in lost daily revenue.
+A vital operational mechanism for a live-tracking and passenger-alert application in SAS Nagar—particularly at the Kharar, Sohana, Zirakpur, and Banur flyovers and bypasses—stems directly from PRTC's Kilometre Scheme lease contract. Under the open tender framework (where private owners lease buses to PRTC for approximately six years at a fixed per-kilometer rate, with an additional ₹1/km paid on declared hill routes and proportional rate adjustments tied to diesel and fare revisions), operational control rests exclusively with PRTC. Specifically, under Clauses 43 and 44 of the PRTC lease agreement, it is the sole responsibility of the driver to pick up passengers from every authorized stoppage, and any Kilometre Scheme bus operated over a bypass, overbridge, or flyover without explicit authorization invites a mandatory penalty of ₹1,000 per violation. Furthermore, public complaints or reports from Municipal/Station Inspectors (MSI) trigger a ₹500 fine for the first offense and ₹1,000 for subsequent offenses, while unauthorized non-supply of a leased bus incurs penalties of ₹2,000 on the first day and ₹2,500 on subsequent days. Integrating a geofenced "Flyover Skip / Stop Missed" reporting feature in the commuter app directly leverages this contractual enforcement mechanism for passengers waiting below flyovers in Kharar, Zirakpur, and Banur.
+Master Intercity Fare and Distance Tables (PRTC, PUNBUS & CTU Long-Route)
+The following two tables provide the complete, verified dataset of regional and inter-state routes, distances, and multi-tier fares from PRTC and CTU online booking portals (pepsurtc.com, ctuonline.chd.gov.in, MakeMyTrip, AbhiBus, and redBus). Of particular importance for local SAS Nagar routing is the Patiala–Mohali HVAC service via Banur (64 km, ₹70), which operates directly along the NH 205-A Banur–Landran–Mohali axis.
+Table A: Punjab & Chandigarh Regional Corridors (PRTC & CTU Ordinary / HVAC / Online Fares)
+Corridor (Origin – Destination)
+	Via / Routing Alignment
+	Distance (KM)
+	Ordinary Fare (₹)
+	HVAC / AC Fare (₹)
+	Approx. Duration & Operator Notes
+	Patiala – Mohali
+	Via Banur (NH 205-A / Landran Axis)
+	64 km
+	—
+	₹70
+	Direct feeder across the Banur–Landran–Mohali corridor.
+	Patiala – Chandigarh
+	Via Rajpura / Zirakpur
+	70 km
+	₹90 – ₹110
+	—
+	1 hr 45 mins (CTU Non-AC Seater ₹110 onwards; PRTC ₹90).
+	Patiala – Patran
+	Via Samana
+	58 km
+	—
+	₹70
+	PRTC regional HVAC service.
+	Patiala – Malerkotla
+	Via Nabha
+	62 km
+	—
+	₹75
+	PRTC regional HVAC service.
+	Chandigarh – Ludhiana
+	Via Kharar, Khamanon, Samrala
+	95 – 97 km
+	₹135
+	₹155
+	1 hr 55 mins – 2 hr 45 mins (11 CTU options; reverse LDH→CHD ₹155).
+	Damdama Sahib – Nangal
+	Via Bathinda, Mansa, Patiala, Ropar
+	109 km (Stage)
+	₹380
+	—
+	Cross-Punjab religious and regional trunk.
+	Sangrur – Chandigarh
+	Via Patiala
+	127 km
+	₹155
+	₹195
+	Key Malwa–Capital connector.
+	Bathinda – Patiala
+	Via Barnala, Sangrur
+	127 km
+	₹195
+	₹240
+	High-frequency PRTC trunk.
+	Barnala – Chandigarh
+	Via Sangrur, Patiala
+	168 km
+	₹200
+	—
+	PRTC Ordinary service.
+	Bathinda – Chandigarh
+	Direct / Fast Alignment
+	169 km
+	₹280
+	₹350
+	Also operates via Mansa–Sunam (184 km, ₹280 Ordinary).
+	Chandigarh – Dehradun
+	Via Paonta Sahib
+	169 km
+	—
+	₹328
+	4 hr 42 mins (5 CTU bus options from ISBT-43).
+	Patiala – Hisar / Paonta Sahib
+	Hisar Direct / Paonta Sahib via Ambala
+	176 km
+	—
+	₹185 / ₹195
+	Patiala–Hisar ₹185 HVAC; Patiala–Paonta Sahib ₹195 HVAC.
+	Patiala – Sirsa
+	Via Sunam, Mansa
+	181 km
+	—
+	₹200
+	PRTC HVAC service (Bathinda–Hisar/Sirsa 189 km: ₹190/₹100 Ord).
+	Kapurthala – Chandigarh
+	Via Jalandhar, Ropar
+	179 km
+	₹205
+	—
+	Traverses the Ropar–Kurali–Kharar highway into ISBT-43.
+	Budhlada – Chandigarh
+	Via Sunam, Patiala
+	183 km
+	₹215
+	—
+	PRTC Ordinary service.
+	Patiala – Kapurthala
+	Via Sirhind, Khanna, Ludhiana, Jalandhar
+	186 km
+	₹210
+	—
+	Connects GT Road towns.
+	Dhilwan – Chandigarh
+	Via Nawanshahr, Ropar
+	204 km
+	₹235
+	—
+	Doaba–Chandigarh link (Saidpur–CHD via Jalandhar also 204 km, ₹235).
+	Gobindwal – Chandigarh
+	Via Jalandhar, Ropar
+	209 km
+	₹240
+	—
+	Enters Tricity via Ropar–Kharar corridor.
+	Damdama Sahib / Sunam – Amritsar
+	Via Jaito–Faridkot (212 km) / Barnala–Moga (219 km)
+	212 – 219 km
+	₹240 – ₹250
+	—
+	Bathinda–Fazilka (219 km, ₹120); Bathinda–Jalandhar (240 km, ₹250).
+	Talwandi Sabo – Chandigarh
+	Via Maur, Mansa, Sunam
+	225 km
+	₹265
+	—
+	PRTC Ordinary service.
+	Faridkot – Chandigarh
+	Via Moga, Ludhiana, Kharar
+	231 km
+	₹265
+	—
+	Enters via Ludhiana–Kharar NH-05.
+	Sangrur – Amritsar
+	Via Ludhiana, Jalandhar
+	233 km
+	₹270
+	₹335
+	Major North–South Punjab trunk.
+	Jaito – Chandigarh
+	Via Bajakhana, Barnala, Sangrur, Patiala
+	237 km
+	₹275
+	—
+	PRTC Ordinary service.
+	Chandigarh – Dinanagar
+	Via Ropar, Hoshiarpur, Pathankot
+	240 km
+	₹438
+	—
+	5 hr 07 mins (CTU long-route service).
+	Chandigarh – Pathankot
+	Via Ropar, Dasuya, Mukerian
+	243 km
+	₹472
+	—
+	4 hr 49 mins (5 CTU bus options).
+	Patiala – Amritsar Sahib
+	Via Ludhiana, Jalandhar
+	246 – 249 km
+	₹280
+	₹280 – ₹397
+	Also operates via Sangrur–Barnala–Moga (272 km, ₹300 Ordinary).
+	Chandigarh – Hisar
+	Via Ambala / Kaithal
+	246 km
+	₹270
+	—
+	Inter-state PRTC/CTU service.
+	Chandigarh – Sirsa
+	Via Patiala, Sunam
+	252 km
+	₹280
+	—
+	Inter-state Haryana link.
+	Chandigarh – Dabwali
+	Via Sangrur, Bathinda
+	279 km
+	₹320
+	—
+	Via Mansa–Sunam is 297 km, ₹320.
+	Chandigarh – Rama Mandi
+	Via Patiala, Sangrur, Bathinda
+	281 km
+	₹325
+	—
+	PRTC Ordinary service.
+	Dabwali – Anandpur Sahib
+	Via Bathinda, Barnala, Ludhiana, Ropar
+	306 km
+	₹345
+	—
+	Connects Malwa to Sri Anandpur Sahib.
+	Chandigarh – Abohar
+	Via Patiala, Sangrur
+	327 km
+	₹370
+	—
+	PRTC long-distance route.
+	Bathinda – Amritsar
+	Via Jaito, Faridkot
+	347 km
+	₹210
+	₹255
+	PRTC Malwa–Majha connector.
+	Fazilka – Chandigarh
+	Via Bathinda, Sangrur
+	348 km
+	₹400
+	—
+	Border district to Capital link.
+	Chandigarh – Jalandhar
+	Via Ropar, Nawanshahr, Phagwara
+	~145 km
+	—
+	₹281
+	3 hr 10 mins – 3 hr 25 mins (CTU HVAC Seater 2+3).
+	Chandigarh – Shimla
+	Via Pinjore, Parwanoo, Solan
+	~113 km
+	₹263
+	₹263+
+	4 hr 35 mins (CTU Non-AC / HVAC).
+	Chandigarh – Yamuna Nagar
+	Via Ambala / Saha
+	106 – 107 km
+	₹195
+	—
+	2 hr 03 mins –[span_485](start_span)[span_485](end_span) 2 hr 10 mins (3 CTU bus options).
+	Chandigarh – Rohtak
+	Via Panipat / Gohana
+	~240 km
+	₹300
+	₹300+
+	5 hr 30 mins (CTU Non-AC / HVAC).
+	Amritsar – Chandigarh
+	Via Jalandhar, Nawanshahr, Ropar
+	~225 km
+	₹360
+	₹360+
+	5 hr 34 mins (CTU Non-AC / HVAC).
+	Table B: Long-Haul Delhi, IGI Airport & Inter-State Trunk Fares (PRTC & CTU)
+Origin – Destination
+	Distance (KM)
+	Ordinary Bus Fare (₹)
+	HVAC Bus Fare (₹)
+	Integral Coach / Volvo Fare (₹)
+	Aggregator / Dynamic Range & Notes
+	Chandigarh – ISBT Delhi
+	246 km
+	₹245
+	₹414
+	₹410
+	4 hr 50 mins – 5 hr 08 mins; 17 CTU options; departs from ISBT-17.
+	Patiala – ISBT Delhi
+	271 km
+	₹260
+	₹285 – ₹420
+	₹585
+	5 hr 01 min – 6 hr; 10 PRTC buses daily (AbhiBus dynamic ₹440–₹467).
+	Patiala – IGI Airport (Delhi)
+	300 km
+	—
+	₹605
+	₹765
+	Via Ambala Cantt; high-demand international traveller link.
+	Ludhiana – ISBT Delhi
+	332 km
+	₹325
+	₹360 – ₹500
+	₹590 – ₹730
+	5 hr 50 mins – 6 hr 30 mins; 14 PRTC buses (AbhiBus ₹330–₹917; Via Jind ₹385 Ord / ₹510 HVAC).
+	Ludhiana – IGI Airport (Delhi)
+	~360 km
+	—
+	—
+	₹890
+	Direct PRTC Volvo airport coach.
+	Jalandhar – ISBT Delhi
+	398 km
+	—
+	₹700
+	₹700 – ₹880
+	7 hr 44 mins – 8 hr; 8 PRTC buses via Ludhiana, Ambala (AbhiBus ₹384–₹1,097; Phagwara ₹384).
+	Jalandhar – IGI Airport (Delhi)
+	~425 km
+	—
+	—
+	₹1,040
+	Direct PRTC Volvo airport coach.
+	
+
+	Amritsar – ISBT Delhi
+	481 km
+	—
+	₹840
+	₹840 – ₹1,075
+	Amritsar – IGI Airport (Delhi)
+	~510 km
+	—
+	—
+	₹1,230
+	Flagship PRTC Volvo airport service.
+	Hoshiarpur – ISBT / IGI Airport
+	~380 / 410 km
+	—
+	—
+	₹915 / ₹1,070
+	₹915 to ISBT Delhi; ₹1,070 to IGI Airport.
+	Kapurthala – ISBT / IGI Airport
+	~415 / 445 km
+	₹425 – ₹430
+	—
+	₹945 / ₹1,105
+	Ordinary ₹425 (via Jalandhar) / ₹430 (via Nakodar); Volvo ₹945 (ISBT) / ₹1,105 (IGI).
+	Patiala – Jammu
+	401 km
+	—
+	₹430
+	—
+	Via Jalandhar, Pathankot.
+	Patiala – Katra
+	~465 km
+	—
+	₹590
+	—
+	Direct pilgrimage HVAC service.
+	Sangrur / Barnala / Malerkotla – Delhi
+	~240 / 290 km
+	₹240 – ₹335
+	₹380 – ₹510
+	—
+	Sangrur via Jind: ₹240 Ord / ₹380 HVAC; via Patiala: ₹330 Ord. Barnala via Jind: ₹280 Ord. Malerkotla: ₹335 Ord / ₹510 HVAC.
+	Faridkot / Bathinda – Delhi
+	~340 / 390 km
+	₹335 – ₹470
+	₹670
+	—
+	Faridkot–Delhi: ₹470 Ord (via PTA/LDH) / ₹670 HVAC (via LDH). Bathinda–Delhi: ₹455 (via PTA) / ₹335 (via Sirsa).
+	Passenger Information System (PIS): Local Fares, Passes, Terminals & Helplines
+To provide a complete commuter utility comparable to Where Is My Bus or Where Is My CTU, the application must include a dedicated Passenger Information System (PIS) module covering local Tricity ticket slabs, daily and monthly bus pass rules, terminal platform allocations, and official support helplines.
+CTU Local & Tricity Fare Slabs and Bus Pass Directory
+Local city bus fares in Chandigarh, Mohali, and Panchkula are structured by distance stages (in 5 km increments after the initial 10 km base stage) and differentiated between Non-AC (Ordinary) and AC/HVAC/Electric buses, with cross-border stage adjustments when crossing Union Territory Chandigarh boundaries into Punjab (Mohali, Landran, and Kharar). In addition to single-journey paper/machine tickets issued by onboard conductors, CTU offers Daily Unlimited Passes and Monthly Smart Card Passes. PRTC also enforces statutory haltage allowances on privatebus charters (nil up to 60 km; 3 hours for 60–100 km; 6 hours for 100–240 km; 12 hours for 240–320 km; and 24 hours per 320 km slab above 320 km) alongside medical concessions for patients commuting to PGI Chandigarh.
+Fare / Pass Category
+	Non-AC (Ordinary) Bus Rate
+	AC / HVAC / Electric Bus Rate
+	Validity, Issuing Office & Commuter Rules
+	UT Local Stage Fares (Within Chandigarh)
+	₹10, ₹15, ₹20, ₹25 (Base ₹10 up to 10 km; +₹5 per 5 km slab; max ₹30–₹35)
+	₹15, ₹20, ₹25 (Base ₹15 up to 10 km; +₹5 per 5 km slab)
+	Purchased directly from the conductor inside the bus.
+	Tricity Cross-Border Fares (Mohali / Landran)
+	₹20 – ₹35 (e.g., Landran to ISBT-17 is ₹35; Sec 71 to ISBT-43 is ₹20–₹30)
+	₹35 – ₹45 (e.g., New OPD PGI to IVY Hospital Mohali ~9.5 km is ₹45)
+	Cross-border stage fares reflect UT–Punjab boundary transition slabs.
+	Airport Shuttle Service
+	—
+	₹100 Flat Fare
+	Dedicated CTU Airport Shuttle connecting ISBT-17 / ISBT-43 to Shaheed Bhagat Singh Intl Airport.
+	Daily Unlimited Commuter Pass
+	₹60 / Day (Green-colored pass)
+	₹75 / Day
+	Purchased directly from the bus conductor on board; valid for unlimited local/tricity travel all day.
+	Monthly Commuter Pass
+	₹470 / Month (+ ₹30 Smart Card fee)
+	₹720 – ₹1,000 / Month (+ ₹30 Smart Card fee)
+	Issued at ISBT Sector 17 and ISBT Sector 43 Pass Offices (requires office/college attestation).
+	PRTC Cancer Patient Concession
+	₹600 / ₹900 Booklet (for 6 months)
+	—
+	Patients >100 km from CHD receive ₹900 worth of tickets (₹600 for <100 km) via District CMO with PGI/Hospital certificate.
+	Terminal Disambiguation (ISBT Sector 43 vs. ISBT Sector 17) & Official Helpline Directory
+A frequent failure mode for regional travellers occurs when a passenger holds an inter-state reservation labeled simply "Chandigarh" and travels to the wrong bus terminal. While CTU offers diverse long-route fleet configurations—including Non-AC Seater (2+2 and 2+3), Non-AC Sleeper (2+1), Non-AC Airbus (2+2), HVAC Seater (2+3), and Volvo Multi-Axle I-Shift AC Semi-Sleeper (2+2) and Sleeper (2+1) coaches—terminal assignment is strictly segregated by geographic corridor. The application must display an explicit terminal disambiguation alert and provide one-tap calling to official enquiry desks.
+Terminal / Agency
+	Physical Location & Structural Division
+	Primary Service Coverage
+	Official Enquiry & Helpline Numbers
+	Digital Portals & Booking Apps
+	ISBT Sector 43 (Primary Mohali/Landran Gateway)
+	Sector 43, near Chandigarh Judicial Academy & Session Court (Pin 160043/160047). Divided into 3 terminals: 1. Ordinary Local, 2. AC/HVAC Local, 3. Interstate Terminal.
+	Local: All Mohali, Landran, Kharar, Zirakpur, Derabassi, Mullanpur routes. Interstate: Punjab, Himachal Pradesh, J&K, Uttarakhand (via Paonta Sahib), selected Haryana routes.
+	CTU Long-Route Enquiry: 0172-2624403 HRTC Enquiry (Sec 43): 0172-2668943
+	Official Portal: chdctu.gov.in Pass Office on-site
+	ISBT Sector 17 (Central & Delhi/South Gateway)
+	Sector 17, Central Chandigarh – 160017 (Platform No. 11, Counter No. 9 for Punjab Roadways Delhi services).
+	Local: City grid routes, PGI, Railway Station, IT Park, plus origin for Routes 20 & 20A to Kharar. Interstate: Delhi, Uttar Pradesh, Rajasthan, Haryana, Ambala Cantt, Vrindavan (Depot-I).
+	ISBT-17 Long-Route Enquiry: 0172-[span_359](start_span)[span_359](end_span)2700006
+	Online Booking: ctuonline.chd.gov.in Android App: CTU Musafir
+	CTU Head Office & City Bus Control
+	Plot No. 701, Industrial Area, Phase-I, Chandigarh – 160002.
+	Fleet operations, electric bus monitoring, smart card passes, and city bus complaints.
+	Toll-Free Helpline: 1800-274-[span_360](start_span)[span_360](end_span)7400 Email: ctu-chd@nic.in
+	Live City Bus Portal: ctucitybus.com
+	PUNBUS / PRTC Control
+	PRTC HQ: Rajpura Rd / Nabha Rd, Patiala – 147001; Rupnagar Depot – 140001; Ludhiana – 141001.
+	Punjab state intercity Ordinary, HVAC, and Volvo services.
+	Portals: pepsurtc.com & punbusonline.com
+	Aggregators: redBus (9945995599), MakeMyTrip, AbhiBus
+	Verified Directory of Private Charter & Feeder Operators in SAS Nagar (Mohali / Landran / Banur)
+Because industrial and college commuters in Mohali frequently supplement public buses with private stage-carriage minibuses and chartered shuttles, the application can enrich its local directory with verified private bus operators registered across the Landran–Mohali–Banur belt.
+Operator Name
+	Verified Operational Address & Landmark
+	Corridor / Sector Coverage
+	Shivay Travels
+	Sector 115, Santemajra, Landran–Kharar Road, Landran, Mohali – 140307
+	Landran–Kharar Highway & Sector 115 feeder corridor.
+	Nanuan Bus Service
+	Main Highway Banur, Near Bus Stand Goyal Colony, Banur, Mohali – 140601
+	Banur–Landran–Mohali–Rajpura highway stage carriage.
+	Rajpreet Travels Chandigarh
+	Old Bus Stand Phase-8, Sector 62 (Near Angeetha Sahib Gurudwara Lambia), Mohali – 160062
+	Phase 8 Mohali Old Bus Stand regional charters.
+	Kartar Travels Pvt. Ltd.
+	Office No. 621/6, Ground Floor, Village Kajheri, Sector 52 (Opposite ISBT-43), CHD – 160036
+	Punjab intercity stage carriage & ISBT-43 feeder.
+	Onkar Tourist Bus Service
+	Opposite Manav Mangal School, Sector 88, SAS Nagar, Mohali – 160055
+	Sector 88 / Southern Mohali & Mani Majra corridors.
+	Longia Bus Service
+	Plot 2090, Sector 85 (Near Shishu Niketan Public School), SAS Nagar, Mohali – 140307
+	Sector 85 / Sohana–Landran institutional belt.
+	Hargobind Travels & Clear Deal Travels
+	Sec 78 / Sec 74A (Near Airport Road) & Sec 74 (Near Phase 8 Ind. Area), Mohali – 140307/08
+	Airport Road (PR-7) and Phase 8 Industrial Area shuttles.
+	Dhillon Travel, Travel Den & Faretel Travels
+	Sector 91 (140307), Vista Tower Sector 75/90 (140307), and Miran Tower Sector 74/119 (160055)
+	Greater Mohali residential sectors (74, 75, 90, 91, 119).
+	Trip 2 Traveller World Pvt. Ltd.
+	No. 2C, Gobind Enclave, Sunny Enclave, Kharar – 140301 (Mohali Sector 117)
+	Sunny Enclave / Sector 117 / Kharar–Landran corridor.
+	Rathore Travel & Guru Tegh Bahadur Tour
+	Sector 62 Phase 8 (Near Gurudwara Sri Amb Sahib, 160062) & Phase 5 Sector 59 (140308)
+	Mohali Phase 5 and Phase 8 religious and commuter charters.
+	Technical Implementation Blueprint: GTFS Schema & Live Tracking Ingestion
+Structuring the Database Using the General Transit Feed Specification (GTFS)
+To ensure that the web and mobile application scales seamlessly and remains interoperable with industry-standard routing engines—such as OpenTripPlanner, QGIS GTFS loaders, or spatial DuckDB/PostGIS backends integrating OpenStreetMap Overpass and India DataMeet layers—the collected data should be normalized into the General Transit Feed Specification (GTFS) relational structure. GTFS separates transit data into a static component (GTFS-Static) that stores schedules, fares, and geographic shapes, and a real-time component (GTFS-RT) that streams arrival predictions, vehicle positions, and service advisories.
+GTFS Table / Entity
+	Primary Key & Foreign Keys
+	Required Fields & Implementation Logic for the Punjab/Chandigarh/Landran App
+	agency.txt
+	agency_id (PK)
+	Define 4 distinct agencies: CTU (Chandigarh Transport Undertaking), PRTC (Pepsu Road Transport Corp), PUNBUS (Punjab Roadways), and CGC_TRANS (CGC Institutional Fleet), with agency_timezone = Asia/Kolkata.
+	stops.txt
+	stop_id (PK), parent_station
+	Store stop_name, stop_lat, stop_lon, and zone_id (for fare calculation). Use location_type = 1 for parent stations (LND_HUB, ISBT_43, ISBT_17) and location_type = 0 for directional platforms (LND_UP, LND_DN).
+	routes.txt
+	route_id (PK), agency_id (FK)
+	Map route_short_name (20, 20A, 213, 242, CGC-R11A), route_long_name (Landran to Derabassi), and route_type = 3 (Bus). Add a custom boolean attribute is_institutional to filter college shuttles from public stage carriages.
+	trips.txt
+	trip_id (PK), route_id (FK), service_id
+	Represent each scheduled run (such as the 14 outbound and 13 inbound runs of Route 213) with direction_id (0 = Outbound/Up, 1 = Inbound/Down) and shape_id (highway polyline along NH 205-A or Sohana road).
+	stop_times.txt
+	trip_id (FK), stop_id (FK), stop_sequence
+	Populate exact arrival_time and departure_time for deterministic routes (Route 213, Ambala Cantt suburban, and CGC morning routes). For headway-based routes (Routes 20, 22, 4A, 5C), combine baseline stop_times.txt offsets with frequencies.txt (headway_secs = 900 to 1800 for 15–30 min intervals).
+	fare_attributes.txt & fare_rules.txt
+	fare_id (PK), origin_id, destination_id
+	Encode CTU local slabs (₹10–₹45), Daily Passes (₹60 Non-AC / ₹75 AC), Airport Shuttle (₹100 flat), and PRTC intercity distance-based fares with a post-calculation rounding trigger CEIL(fare / 5.0) * 5 to enforce the Punjab ₹5 rounding rule.
+	Live GPS Tracking & Telemetry Ingestion Strategy
+Because no single public API provides unified live GPS coordinates across CTU city buses, PRTC highway buses, and CGC University institutional buses, the platform's backend architecture must implement a three-tier hybrid telemetry pipeline combining official Smart City feeds, authenticated institutional beacons, and deterministic schedule interpolation.
+At the primary public transit layer, Chandigarh's World Bank-assisted ITS bus modernization project equips CTU buses with Automatic Vehicle Location (AVL) GPS transponders that stream real-time telemetry to the Chandigarh Smart City Integrated Command and Control Centre (ICCC) and the public portal ctucitybus.com, which is linked directly from chdctu.gov.in for real-time tracking of city bus services and electric bus reports. Under the Ministry of Housing and Urban Affairs (MoHUA) DataSmart Cities framework and the National Urban Digital Mission (NUDM), municipal transit datasets are structured for exchange via the India Smart Cities Open Data Portal (smartcities.data.gov.in) and standardized India Urban Data Exchange (IUDX) middleware APIs. An ingestion worker service polling the CTU city bus tracking endpoints at 10-to-15-second intervals can normalize vehicle coordinates, bearing, and route assignments into an in-memory geospatial cache and broadcast live VehiclePosition updates to connected clients via WebSockets.
+At the institutional layer, CGC University (Jhanjeri) and CGC Landran buses are equipped with onboard GPS tracking and speed governors managed by the college transport department. Because proprietary institutional GPS vendor feeds are typically closed to external consumers unless integrated via the campus ERP, the platform should pair administrative API hooks with a lightweight crowdsourced beacon mode for verified students and Route Incharges. When a verified CGC student or Route Incharge—such as the route coordinators assigned to the Chandigarh, Panchkula, or Khanna corridors—boards a morning bus (for example, CGC-R11A at Peermushalla at 07:40 AM or CGC-R01 at Khuda Lahora at 07:40 AM) and activates live location sharing, the mobile client streams foreground GPS coordinates locked to that trip_id. Snapping those coordinates to the route polyline yields sub-minute arrival predictions for students waiting downstream at Phase 10 Mohali (08:27 AM) or Landran Chowk (08:55 AM).
+At the fallback and regional layer, the platform can draw architectural lessons from open-source regional transit systems such as BusLens—which utilizes a Python Flask REST API on AWS Lambda backed by Amazon RDS MySQL and an S3/CloudFront frontend for Chandigarh–Mohali route search—and HrRoadways, which pairs a Node.js/Express smart-route API with multilingual localization and community status reporting. For long-route inter-state inventory and dynamic seat availability across CTU and PRTC, automated Selenium/API scrapers targeting ctuonline.chd.gov.in and aggregator portals (redbus.in, makemytrip.com, abhibus.com) can periodically refresh departure and fare baselines. Whenever live GPS telemetry drops out due to cellular dead zones along the Banur–Kharar or Sirhind rural highways, the tracking engine must smoothly fall back to schedule-based linear interpolation—calculating the vehicle's instantaneous position along the route polyline using the current clock time relative to the exact stop offsets (such as the 4-minute segment between Landran and DC Office/Lakhnour, and the 4-minute segment between Lakhnour and Sohana on Route 213)—while explicitly badging the user interface indicator as an estimated scheduled position rather than live GPS telemetry.
+Conclusion and Architectural Synthesis
+Building an authoritative, high-utility transit application for Punjab, Chandigarh, and SAS Nagar (Mohali–Landran) requires moving beyond static PDF timetables to unify three distinct mobility regimes within a single geospatial graph. By anchoring the database on verified directional coordinates at Landran Chowk (Landran Up vs. Landran Down), disambiguating CGC Landran (Sector 112 on NH 205-A) from CGC University (Jhanjeri), and encoding exact stop-by-stop timestamp progressions for core trunk routes like CTU Route 213, Route 20, Route 20A, and Route 242 alongside the 12-corridor CGC institutional fleet, the platform solves the most persistent pain points faced by regional commuters and day scholars. Coupling this GTFS-compliant static foundation with PRTC's ₹5 stage-fare rounding logic, Kilometre Scheme flyover-compliance reporting, and a hybrid IUDX/CTU-plus-crowdsourced GPS telemetry pipeline establishes a resilient, production-ready Mobility-as-a-Service (MaaS) architecture tailored specifically to the Tricity and Punjab transit ecosystem.
+Works cited
+1. Home | The official website of the Chandigarh Transport Undertaking, https://chdctu.gov.in/ 2. CGC University Transport Facility – Safe & Reliable Bus Services, https://www.cgcuniversity.in/transport-facility 3. Sector 43 Bus Stand Chandigarh: Timings & Routes 2026, https://insightrobmedia.com/sector-43-bus-stand-chandigarh/ 4. chandigarh transport undertaking time table of ctu bus services, https://chdctu.gov.in/cadmin/uploads/1785232444_e91748013c2b5c737091.pdf 5. time table of ctu bus service operation sub-urban routes-depot no-iii, https://chdctu.gov.in/files/documents/Sub_TimeTable_010623.pdf 6. ORDINARY, HVAC & VOLVO Bus fares for major destinations, https://www.pepsurtc.com/?page_id=1236 7. Punjab govt hikes bus fares by 23 paise/km - Hindustan Times, https://www.hindustantimes.com/cities/chandigarh-news/punjab-govt-hikes-bus-fares-by-23-paisekm-101725734164929.html 8. Punjab Roadways and PRTC Protest Against Kilometre Scheme, https://timesofindia.indiatimes.com/city/chandigarh/prtc-and-punbus-employees-protest-kilometre-scheme-halting-bus-services-across-punjab/articleshow/124759430.cms 9. Chandigarh College of Pharmacy Landran: Admission 2026, Fees, https://collegedunia.com/college/58245-chandigarh-college-of-pharmacy-ccp-landran-mohali 10. CGC Jhanjeri Transport Routes & Timings | PDF - Scribd, https://www.scribd.com/document/888170580/BusRouteDetails-1 11. CTU bus Fare rate? : r/Chandigarh - Reddit, https://www.reddit.com/r/Chandigarh/comments/1uu8pgq/ctu_bus_fare_rate/ 12. Which CTU bus goes via Manimajra to sect 26 chd? : r/Chandigarh, https://www.reddit.com/r/Chandigarh/comments/1v95chr/which_ctu_bus_goes_via_manimajra_to_sect_26_chd/ 13. CHANDIGARH - Chitkara University, https://www.chitkara.edu.in/delcon2023/assets/pdfs/Latest-Bus-Routes-2022-2023.pdf 14. Top 10 Reasons to Choose CGC Landran for Your Future, https://www.cgc.edu.in/blog/top-ten-reasons-to-join-cgc-landran 15. Feel Free Contact Us at CGC Landran, https://www.cgc.edu.in/contact-us 16. B Tech Programs Brochure 2024, https://www.cgc.edu.in/assets/documents/B%20Tech%20Programs%20Brochure%202024.pdf 17. Black Spot SAS Nagar, https://sasnagar.punjabpolice.gov.in/acc_pron_area.php 18. Landran (Down) — CTU Bus Routes & Timings, https://whereismyctu.com/stop/landran-down 19. Route 213 – Chandigarh City Bus Time Table, https://citybustimetable.com/route-213-chandigarh-city-bus-time-table/ 20. E-GOVERNANCE AND CITIZEN ENGAGEMENT, https://www.orfonline.org/public/uploads/posts/pdf/20241016222737.pdf 21. The journey of urban India: from conventional policy implementation, https://ficci.in/public/storage/SPDocument/23420/smart-city-jan21.pdf 22. Adding bus stops : r/GoogleMaps - Reddit, https://www.reddit.com/r/GoogleMaps/comments/1c8jsk7/adding_bus_stops/ 23. Today I learned that google maps lies about transit time : r/StLouis, https://www.reddit.com/r/StLouis/comments/1f9k3xa/today_i_learned_that_google_maps_lies_about/ 24. How does CTU work? Please help I am so confused : r/Chandigarh, https://www.reddit.com/r/Chandigarh/comments/13kn5if/how_does_ctu_work_please_help_i_am_so_confused/ 25. CHANDIGARH TRANSPORT UNDERTAKING TIME TABLE OF CTU, https://chdctu.gov.in/cadmin//uploads/1785205754.pdf 26. Landran (Up) — CTU Bus Routes & Timings, https://whereismyctu.com/stop/landran-up 27. Mapping of Urban Sprawl around Sahibzada Ajit Singh Nagar, https://www.researchgate.net/publication/230674092_Mapping_of_Urban_Sprawl_around_Sahibzada_Ajit_Singh_Nagar 28. Landran (37) Village in Sahibzada Ajit Singh Nagar, Punjab | Vill.co.in, https://vill.co.in/punjab/sahibzada-ajit-singh-nagar/sas-nagar-mohali-052002670/landran-37-002670391500/ 29. Landran, Mohali Pin Code Number, Taluk / Tehsil Details & More, https://housing.com/pin-code/landran-mohali-pin-code-140307 30. CTU Bus Route Timetable Overview | PDF | Transport - Scribd, https://www.scribd.com/document/318425156/Ctu-Routes 31. CTU - BESTpedia, https://bestpedia.in/category/ctu/ 32. Orientation Brochure, https://orientation2026.cgc.edu.in/Prarmbah%20Information%20Brouchure(for%20students).pdf 33. CGC Landran: Courses, Fees, Admission 2026, Cutoff, Placements, https://www.getmyuni.com/college/chandigarh-group-of-colleges-cgc-landran-mohali 34. Transport - CCHMCT, http://www.cchmct.org/transport/ 35. Faculty | Chandigarh College of Technology, https://www.cctmohali.org/faculty 36. Transportation | Chandigarh College of Engineering, https://www.cgccoe.org/transportation 37. I want to know about bus rent of this college - Careers360, https://www.careers360.com/question-i-want-to-know-about-bus-rent-of-this-college 38. Chandigarh Bus Routes and Timings | PDF | Punjab - Scribd, https://www.scribd.com/document/920920449/Bus-Routes-2025-26-1 39. Punjab increases bus fares by 23 paise per km, expects additional, https://www.tribuneindia.com/news/punjab/punjab-increases-bus-fares-by-23-paise-per-km-expects-additional-rs-150-crore-revenue/ 40. PRTC opens tenders for 'Kilometre Scheme' amid protests over, https://timesofindia.indiatimes.com/city/chandigarh/prtc-opens-tenders-for-kilometre-scheme-amid-protests-over-privatisation-concerns/articleshow/125750778.cms 41. Pepsu Road Transport Corporation (PRTC), https://www.pepsurtc.com/wp-content/uploads/2024/09/etenderdoc19.pdf 42. PUNJAB STATE BUS STANDS MANAGEMENT ... - Tenders, https://www.tenderfiles.com/tenderdocuments/12026/1/c4fc1e10-00d7-4c8b-b3b2-89e2ae27e9ee?FileName=RFP_HVAC_Updated.pdf 43. Chandigarh Transport Undertaking (CTU) (CTU) Bus Booking, https://www.makemytrip.com/bus-tickets/ctu-chandigarh-transport-undertaking-bus-booking.html 44. Chandigarh Transport Undertaking (CTU) Online Bus ... - redBus, https://www.redbus.in/online-booking/chandigarh-transport-undertaking-ctu 45. CTU, https://ctuonline.chd.gov.in/ 46. Pepsu PRTC Bus Booking, Ticket Price, PRTC Bus Timings - AbhiBus, https://www.abhibus.com/operator/1487/Pepsu-prtc 47. CTU Bus Chandigarh Services & Timings, https://whereismyctu.com/ctu-bus 48. PRTC Bus Services Overview and Passes | PDF | Traffic Collision, https://www.scribd.com/document/164819332/prtc 49. Chandigarh Web Portal, https://ctucitybus.com/ 50. Top Bus Services near Mohali Sector 91,Mohali - Best Bus Booking, https://www.justdial.com/Mohali/Bus-Services-in-Mohali-Sector-91/nct-10061171 51. QGIS Plugin for opening GTFS files, https://ctu-geoforall-lab.github.io/qgis-gtfs-plugin/ 52. Disha — Open-Source Desktop GIS with Conversational AI, https://opengeoai.in/disha/ 53. Finding the K shortest paths in a schedule-based transit network, https://www.researchgate.net/publication/220470859_Finding_the_K_shortest_paths_in_a_schedule-based_transit_network 54. Chandigarh Smart City Ranking 2026: #365 by Smart Reach, https://citymirror.io/cities/in-chandigarh 55. (PDF) SMART GOVERNANCE THROUGH MOBILE APPLICATIONS, https://www.researchgate.net/publication/416015664_SMART_GOVERNANCE_THROUGH_MOBILE_APPLICATIONS_A_CROSS-CITY_ASSESSMENT_OF_CITIZEN-CENTRIC_DIGITAL_PLATFORMS_IN_INDIA'S_SMART_CITIES 56. Study of India Appropriate Technology (IoT) Solutions for Smart Cities, https://iudx.org.in/archives/IISc_IoT4SmartCities_Consolidated_Report.pdf 57. BusLens is a smart bus route search system that allows ... - GitHub, https://github.com/Deepakshandilya/BusLens 58. Deepak Shandilya Deepakshandilya - GitHub, https://github.com/Deepakshandilya 59. HrRoadways is a comprehensive project designed to ... - GitHub, https://github.com/NishantRana07/HrRoadways 60. How to Book CTU Bus Tickets Online - Roadways Bus Time, https://www.roadwaysbustime.com/2025/03/how-to-book-ctu-bus-tickets-online.html 61. RedBus-Data-Scraping-with-Selenium-dynamic-filtering ... - GitHub, https://github.com/Gayathri2200/RedBus-Data-Scraping-with-Selenium-dynamic-filtering-using-Streamlit/blob/main/Red%20bus%20data.ipynb 62. RedBus-Data-Scraping-with-Selenium/df_pb.csv at main - GitHub, https://github.com/SrivathsanP23/RedBus-Data-Scraping-with-Selenium/blob/main/df_pb.csv
