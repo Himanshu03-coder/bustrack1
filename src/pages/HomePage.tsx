@@ -51,8 +51,8 @@ function AnimatedBus() {
         <rect x="15" y="44" width="250" height="8" fill="url(#topGrad)" />
 
         {/* Route text on side */}
-        <text x="50" y="64" fill="#DBEAFE" fontSize="10" fontWeight="bold" fontFamily="monospace" opacity="0.8">
-          WHERE IS MY BUS?
+        <text x="50" y="64" fill="#DBEAFE" fontSize="11" fontWeight="bold" fontFamily="monospace" opacity="0.9" letterSpacing="2">
+          BUSTRACK
         </text>
 
         {/* Windows */}

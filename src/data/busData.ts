@@ -1,5 +1,5 @@
 /**
- * WHERE IS MY BUS? — Punjab & Chandigarh Transit Dataset
+ * BUSTRACK — Punjab & Chandigarh Transit Dataset
  *
  * Data Sources:
  *   - CTU Official Timetable (Depot II, III, IV) — effective July 25, 2026

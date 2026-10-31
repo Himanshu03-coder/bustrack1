@@ -73,7 +73,7 @@ function Logo({ onClick }: { onClick: () => void }) {
       </div>
       <div className="text-left">
         <div className="text-sm font-extrabold text-ink leading-tight tracking-tight">
-          Where Is My Bus?
+          BUSTRACK
         </div>
         <div className="text-[10px] text-muted leading-tight">Smart Insights for a Better Journey</div>
       </div>
@@ -118,7 +118,7 @@ export function Header() {
           <ThemeSelector />
         </div>
         <div className="px-5 py-4 text-[10px] text-muted">
-          © {new Date().getFullYear()} Where Is My Bus?<br />
+          © {new Date().getFullYear()} BUSTRACK<br />
           <span className="opacity-60">Data: CTU · PRTC · CGC University</span>
         </div>
       </aside>

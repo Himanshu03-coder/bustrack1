@@ -76,7 +76,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [setFavourites]);
 
   const addBooking = useCallback((b: Omit<BookingRecord, 'bookingId' | 'pnr' | 'bookedAt' | 'status'>): BookingRecord => {
-    const pnr = `WIMB-${Math.floor(100000 + Math.random() * 900000)}`;
+    const pnr = `BT-${Math.floor(100000 + Math.random() * 900000)}`;
     const record: BookingRecord = {
       ...b,
       bookingId: `bk-${Date.now()}`,

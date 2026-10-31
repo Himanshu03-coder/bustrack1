@@ -89,7 +89,7 @@ export function PartnerPage() {
             Connect with passengers travelling your routes. Grow your bookings.
           </p>
           <div className="flex flex-wrap gap-3">
-            <a href="mailto:partner@whereismybus.in"
+            <a href="mailto:partner@bustrack.in"
               className="btn-blue flex items-center gap-2 px-6 py-3 font-bold rounded-2xl text-sm">
               <Mail className="h-4 w-4" />
               Apply to Partner
@@ -148,7 +148,7 @@ export function PartnerPage() {
                   </li>
                 ))}
               </ul>
-              <a href="mailto:partner@whereismybus.in?subject=Subscription Inquiry"
+              <a href="mailto:partner@bustrack.in?subject=Subscription Inquiry"
                 className="btn-blue w-full py-2.5 text-sm font-bold rounded-xl text-center block">
                 Get Started
               </a>
@@ -189,14 +189,14 @@ export function PartnerPage() {
       <section>
         <h2 className="text-lg font-bold text-ink mb-4">Get In Touch</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <a href="mailto:partner@whereismybus.in"
+          <a href="mailto:partner@bustrack.in"
             className="glass p-5 rounded-2xl border border-white/5 hover:border-blue-500/20 transition flex items-center gap-4">
             <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
               <Mail className="h-5 w-5 text-blue-400" />
             </div>
             <div>
               <div className="font-bold text-ink text-sm">Email Us</div>
-              <div className="text-blue-400 text-xs">partner@whereismybus.in</div>
+              <div className="text-blue-400 text-xs">partner@bustrack.in</div>
               <div className="text-muted text-xs mt-0.5">Partnership & subscription queries</div>
             </div>
           </a>

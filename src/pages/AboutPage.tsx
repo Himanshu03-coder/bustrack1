@@ -29,7 +29,7 @@ export function AboutPage() {
             <Sparkles className="h-3.5 w-3.5 text-blue-400" /> University Hackathon Project
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink">
-            Where Is My Bus?
+            BUSTRACK
           </h1>
           <p className="mt-2 text-xl font-medium text-gradient-blue">
             Smart Insights for a Better Journey

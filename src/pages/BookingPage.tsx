@@ -298,7 +298,7 @@ export function BookingPage() {
               <p className="font-semibold text-ink">Boarding Instructions</p>
               <p>• Show this digital pass or mention PNR {confirmedTicket.pnr} to the bus conductor upon boarding.</p>
               <p>• Arrive at {confirmedTicket.boardingPoint} 10 minutes prior to scheduled departure.</p>
-              <p>• Operator Helpdesk: +91 172 2704005 / info@whereismybus.in</p>
+              <p>• Operator Helpdesk: +91 172 2704005 / info@bustrack.in</p>
             </div>
           </div>
 
@@ -577,3 +577,4 @@ export function BookingPage() {
     </div>
   );
 }
+

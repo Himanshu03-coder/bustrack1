@@ -1,7 +1,7 @@
 @echo off
-title Where Is My Bus - Dev Server
+title BUSTRACK - Dev Server
 echo ========================================================
-echo   WHERE IS MY BUS? - Smart Insights for a Better Journey
+echo   BUSTRACK - Smart Insights for a Better Journey
 echo ========================================================
 echo.
 set "PATH=C:\Users\asus\AppData\Local\Author Software\nvm\.nodejs;C:\Users\asus\AppData\Local\Author Software\nvm\installs\v24.21.0;%PATH%"
@@ -14,3 +14,4 @@ echo.
 echo Starting Vite server... (Press Ctrl+C to stop)
 npm run dev -- --host 0.0.0.0 --port 5173
 pause
+

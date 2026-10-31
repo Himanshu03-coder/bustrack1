@@ -81,7 +81,5 @@ export function distanceFromKm(
   target: { lat: number; lng: number },
   point: [number, number],
 ): number {
-  return (
-    haversineMeters([target.lat, target.lng], point) / 1000
-  ).toFixed(1) as unknown as number;
+  return Math.round((haversineMeters([target.lat, target.lng], point) / 1000) * 10) / 10;
 }

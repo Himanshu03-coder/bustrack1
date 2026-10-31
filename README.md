@@ -1,4 +1,4 @@
-# Where Is My Bus? (WIMB)
+# BUSTRACK
 > **Smart Insights for a Better Journey**
 
 A university hackathon transit discovery, multi-city journey planning, and vacant-seat booking platform engineered specifically for **Chandigarh Tricity (Chandigarh, Mohali, Panchkula)**, **Landran**, **Kharar**, and **Punjab** regional corridors.
@@ -117,3 +117,4 @@ where-is-my-bus/
 - **Institutional Transit Segregation**: College buses are strictly flagged and never mixed with public booking.
 - **Transparent Fares**: If a fare is not in official gazettes, it is displayed as "Not available" rather than fabricated.
 - **Full Provenance**: Every record displays its official authority source and last verification timestamp.
+
