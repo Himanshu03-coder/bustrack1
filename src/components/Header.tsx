@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Menu, X, Home, MapPin, Route, Navigation, Info, Settings, Bell, User, Palette, Check, Map, Ticket, Database
+  Menu, X, Home, MapPin, Route, Navigation, Info, Settings, Bell, User, Palette, Check, Map, Ticket, Database, ShieldCheck
 } from 'lucide-react';
 import { useStore, type Page } from '@/store';
 import { useLocalStorage } from '@/lib';
@@ -15,6 +15,7 @@ const NAV: { label: string; icon: any; page: Page }[] = [
   { label: 'Routes',         icon: Map,        page: { name: 'routes' }      },
   { label: 'Nearby',         icon: MapPin,     page: { name: 'nearby' }      },
   { label: 'Data Audit',     icon: Database,   page: { name: 'data-audit' }  },
+  { label: 'Admin Portal',   icon: ShieldCheck,page: { name: 'admin' }       },
   { label: 'About',          icon: Info,       page: { name: 'about' }       },
 ];
 
@@ -23,7 +24,7 @@ const MOBILE_NAV = [
   NAV[1], // Planner
   NAV[2], // Buses
   NAV[3], // Book Seat
-  NAV[5], // Nearby
+  NAV[7], // Admin
 ];
 
 function isActive(cur: Page, target: Page): boolean {
@@ -31,6 +32,7 @@ function isActive(cur: Page, target: Page): boolean {
   if (target.name === 'results' && cur.name === 'tracking') return true;
   if (target.name === 'planner' && cur.name === 'planner') return true;
   if (target.name === 'booking' && cur.name === 'booking') return true;
+  if (target.name === 'admin' && cur.name === 'admin') return true;
   return false;
 }
 

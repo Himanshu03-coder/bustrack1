@@ -10,6 +10,7 @@ import { PartnerPage } from '@/pages/PartnerPage';
 import { JourneyPlannerPage } from '@/pages/JourneyPlannerPage';
 import { BookingPage } from '@/pages/BookingPage';
 import { DataAuditPage } from '@/pages/DataAuditPage';
+import { AdminPage } from '@/pages/AdminPage';
 import { useEffect } from 'react';
 import { applyTheme } from '@/theme';
 
@@ -26,6 +27,7 @@ function Router() {
     case 'planner':       return <JourneyPlannerPage />;
     case 'booking':       return <BookingPage />;
     case 'data-audit':    return <DataAuditPage />;
+    case 'admin':         return <AdminPage />;
     default:              return <HomePage />;
   }
 }

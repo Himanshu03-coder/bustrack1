@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { RecentSearch, BookingRecord } from './types';
 import { useLocalStorage } from './lib';
+import { ROUTES, type TransitRoute } from './data/busData';
 
 export type Page =
   | { name: 'home' }
@@ -12,7 +13,8 @@ export type Page =
   | { name: 'partner' }
   | { name: 'planner'; from?: string; to?: string; date?: string }
   | { name: 'booking'; tripId?: string }
-  | { name: 'data-audit' };
+  | { name: 'data-audit' }
+  | { name: 'admin' };
 
 interface Store {
   page: Page;
@@ -25,6 +27,13 @@ interface Store {
   bookings: BookingRecord[];
   addBooking: (b: Omit<BookingRecord, 'bookingId' | 'pnr' | 'bookedAt' | 'status'>) => BookingRecord;
   cancelBooking: (pnr: string) => void;
+  isAdmin: boolean;
+  loginAdmin: (password: string) => boolean;
+  logoutAdmin: () => void;
+  allRoutes: TransitRoute[];
+  addCustomRoute: (r: TransitRoute) => void;
+  deleteCustomRoute: (routeId: string) => void;
+  resetRoutes: () => void;
 }
 
 const Ctx = createContext<Store | null>(null);
@@ -41,6 +50,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [recent, setRecent] = useLocalStorage<RecentSearch[]>('wimb_recent', []);
   const [favourites, setFavourites] = useLocalStorage<string[]>('wimb_fav', []);
   const [bookings, setBookings] = useLocalStorage<BookingRecord[]>('wimb_bookings', []);
+  const [isAdmin, setIsAdmin] = useLocalStorage<boolean>('bt_admin_auth', false);
+  const [customRoutes, setCustomRoutes] = useLocalStorage<TransitRoute[]>('bt_custom_routes', []);
+
+  const allRoutes = useMemo(() => {
+    return [...customRoutes, ...ROUTES];
+  }, [customRoutes]);
 
   const go = useCallback((p: Page) => {
     setPage((cur) => {
@@ -94,6 +109,30 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     );
   }, [setBookings]);
 
+  const loginAdmin = useCallback((pwd: string): boolean => {
+    if (pwd === 'bustrack@2026') {
+      setIsAdmin(true);
+      return true;
+    }
+    return false;
+  }, [setIsAdmin]);
+
+  const logoutAdmin = useCallback(() => {
+    setIsAdmin(false);
+  }, [setIsAdmin]);
+
+  const addCustomRoute = useCallback((r: TransitRoute) => {
+    setCustomRoutes((prev) => [r, ...prev.filter((x) => x.route_id !== r.route_id)]);
+  }, [setCustomRoutes]);
+
+  const deleteCustomRoute = useCallback((routeId: string) => {
+    setCustomRoutes((prev) => prev.filter((x) => x.route_id !== routeId));
+  }, [setCustomRoutes]);
+
+  const resetRoutes = useCallback(() => {
+    setCustomRoutes([]);
+  }, [setCustomRoutes]);
+
   useEffect(() => {
     if (page.name === 'home') setHistory([]);
   }, [page]);
@@ -110,8 +149,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       bookings,
       addBooking,
       cancelBooking,
+      isAdmin,
+      loginAdmin,
+      logoutAdmin,
+      allRoutes,
+      addCustomRoute,
+      deleteCustomRoute,
+      resetRoutes,
     }),
-    [page, go, back, recent, addRecent, favourites, toggleFavourite, bookings, addBooking, cancelBooking],
+    [
+      page,
+      go,
+      back,
+      recent,
+      addRecent,
+      favourites,
+      toggleFavourite,
+      bookings,
+      addBooking,
+      cancelBooking,
+      isAdmin,
+      loginAdmin,
+      logoutAdmin,
+      allRoutes,
+      addCustomRoute,
+      deleteCustomRoute,
+      resetRoutes,
+    ],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
