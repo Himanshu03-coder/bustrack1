@@ -15,9 +15,16 @@ import {
   RefreshCw,
   Sparkles,
   Download,
+  Sliders,
+  Sun,
+  Moon,
+  Palette,
+  Bell,
+  Check,
 } from 'lucide-react';
 import { useStore } from '@/store';
 import { ROUTES, type TransitRoute, type ServiceType, type VerificationStatus } from '@/data/busData';
+import { THEMES, type ThemeName } from '@/theme';
 
 export function AdminPage() {
   const {
@@ -29,6 +36,12 @@ export function AdminPage() {
     deleteCustomRoute,
     resetRoutes,
     go,
+    theme,
+    setTheme,
+    toggleTheme,
+    siteAlert,
+    setSiteAlert,
+    loadDemoData,
   } = useStore();
 
   // Login form state
@@ -37,7 +50,7 @@ export function AdminPage() {
   const [loginError, setLoginError] = useState('');
 
   // Admin tab state
-  const [activeTab, setActiveTab] = useState<'manage' | 'add' | 'upload' | 'partners'>('manage');
+  const [activeTab, setActiveTab] = useState<'manage' | 'add' | 'upload' | 'partners' | 'setup'>('manage');
 
   // Add route form state
   const [routeNumber, setRouteNumber] = useState('');
@@ -50,13 +63,17 @@ export function AdminPage() {
   const [durationMin, setDurationMin] = useState(45);
   const [distanceKm, setDistanceKm] = useState(25);
   const [serviceType, setServiceType] = useState<ServiceType>('Public CTU');
-  const [fareOrdinary, setFareOrdinary] = useState(20);
-  const [fareHvac, setFareHvac] = useState(30);
   const [formSuccess, setFormSuccess] = useState('');
 
   // Upload state
   const [uploadText, setUploadText] = useState('');
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+
+  // Setup tab state
+  const [alertMsgInput, setAlertMsgInput] = useState(siteAlert.message);
+  const [alertActiveInput, setAlertActiveInput] = useState(siteAlert.active);
+  const [alertTypeInput, setAlertTypeInput] = useState<'info' | 'warn' | 'success'>(siteAlert.type);
+  const [setupSavedToast, setSetupSavedToast] = useState(false);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,32 +155,42 @@ export function AdminPage() {
     }
   };
 
+  const handleSaveSetup = () => {
+    setSiteAlert({
+      active: alertActiveInput,
+      message: alertMsgInput,
+      type: alertTypeInput,
+    });
+    setSetupSavedToast(true);
+    setTimeout(() => setSetupSavedToast(false), 2500);
+  };
+
   if (!isAdmin) {
     return (
-      <div className="max-w-md mx-auto my-12 glass rounded-3xl p-8 border border-blue-500/30 shadow-2xl space-y-6">
+      <div className="max-w-md mx-auto my-12 glass rounded-3xl p-8 border border-line shadow-xl space-y-6">
         <div className="text-center space-y-2">
-          <div className="w-14 h-14 mx-auto rounded-2xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 shadow-glow-blue">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-accent/10 border border-accent/25 flex items-center justify-center text-accent shadow-sm">
             <Lock className="h-7 w-7" />
           </div>
-          <h1 className="text-2xl font-extrabold text-ink">BUSTRACK Admin Console</h1>
+          <h1 className="text-2xl font-black text-ink">BUSTRACK Admin Console</h1>
           <p className="text-xs text-muted">
-            Authorized transport authority portal for schedule updates & data uploads.
+            Authorized transport authority portal for schedule updates, theme setup & data uploads.
           </p>
         </div>
 
         {/* Hackathon credential badge */}
-        <div className="bg-blue-500/10 border border-blue-500/25 rounded-2xl p-3 text-xs space-y-1">
-          <div className="flex items-center gap-1.5 font-bold text-blue-300">
+        <div className="bg-accent/10 border border-accent/25 rounded-2xl p-3.5 text-xs space-y-1">
+          <div className="flex items-center gap-1.5 font-bold text-accent">
             <Key className="h-3.5 w-3.5" /> Hackathon Demo Credentials
           </div>
-          <p className="text-muted text-[11px]">
+          <p className="text-muted text-[11px] leading-relaxed">
             Admin ID: <strong className="text-ink">admin@bustrack.in</strong><br />
             Password: <strong className="text-ink">bustrack@2026</strong>
           </p>
         </div>
 
         {loginError && (
-          <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <span>{loginError}</span>
           </div>
@@ -171,31 +198,31 @@ export function AdminPage() {
 
         <form onSubmit={handleLogin} className="space-y-4 text-xs">
           <div>
-            <label className="text-muted block mb-1 font-medium">Administrator Email</label>
+            <label className="label mb-1.5 block">Administrator Email</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-surface rounded-xl border border-line/20 text-ink focus:border-blue-500 focus:outline-none"
+              className="input text-xs"
             />
           </div>
 
           <div>
-            <label className="text-muted block mb-1 font-medium">Secret Password</label>
+            <label className="label mb-1.5 block">Secret Password</label>
             <input
               type="password"
               required
               placeholder="Enter password…"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-surface rounded-xl border border-line/20 text-ink focus:border-blue-500 focus:outline-none"
+              className="input text-xs"
             />
           </div>
 
           <button
             type="submit"
-            className="btn-blue w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-glow-blue mt-2"
+            className="btn-blue w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-sm mt-2"
           >
             <ShieldCheck className="h-4 w-4" /> Sign In to Admin Console
           </button>
@@ -211,13 +238,15 @@ export function AdminPage() {
         <div>
           <div className="flex items-center gap-2">
             <span className="chip-verified text-xs font-semibold uppercase tracking-wider flex items-center gap-1">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" /> Admin Authenticated
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" /> Admin Authenticated
             </span>
             <span className="text-xs text-muted font-mono">{email}</span>
           </div>
-          <h1 className="mt-1 text-2xl font-extrabold text-ink sm:text-3xl">Transit Management Console</h1>
-          <p className="text-sm text-muted">
-            Real-time route publishing, schedule modifications, and transit dataset imports.
+          <h1 className="mt-1 text-2xl font-black text-ink sm:text-3xl tracking-tight">
+            Transit Authority Control Console
+          </h1>
+          <p className="text-xs sm:text-sm text-muted">
+            Configure website themes, publish live routes, set alerts, and manage datasets in real time.
           </p>
         </div>
 
@@ -230,11 +259,11 @@ export function AdminPage() {
             }}
             className="btn-ghost text-xs px-3 py-2 rounded-xl flex items-center gap-1.5"
           >
-            <RefreshCw className="h-3.5 w-3.5" /> Reset to Default
+            <RefreshCw className="h-3.5 w-3.5 text-accent" /> Reset to Default
           </button>
           <button
             onClick={logoutAdmin}
-            className="btn-ghost text-xs text-red-400 hover:text-red-300 px-3 py-2 rounded-xl flex items-center gap-1.5"
+            className="btn-outline text-xs text-red-500 hover:text-red-600 px-3 py-2 rounded-xl flex items-center gap-1.5"
           >
             <LogOut className="h-3.5 w-3.5" /> Sign Out
           </button>
@@ -242,39 +271,40 @@ export function AdminPage() {
       </div>
 
       {/* KPI Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="glass rounded-2xl p-4 border border-blue-500/20">
-          <span className="text-xs text-muted">Total Live Routes</span>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="glass rounded-2xl p-4 border border-line">
+          <span className="text-xs text-muted font-semibold">Total Live Routes</span>
           <div className="text-2xl font-black text-ink mt-1">{allRoutes.length}</div>
-          <span className="text-[10px] text-blue-400">Published & Searchable</span>
+          <span className="text-[10px] text-accent font-semibold">Published & Searchable</span>
         </div>
-        <div className="glass rounded-2xl p-4 border border-emerald-500/20">
-          <span className="text-xs text-muted">Government Fleets</span>
-          <div className="text-2xl font-black text-emerald-400 mt-1">
+        <div className="glass rounded-2xl p-4 border border-line">
+          <span className="text-xs text-muted font-semibold">Government Fleets</span>
+          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
             {allRoutes.filter((r) => r.category === 'Government').length}
           </div>
-          <span className="text-[10px] text-muted">CTU & PRTC Stage Carriage</span>
+          <span className="text-[10px] text-muted">CTU & PRTC Carriage</span>
         </div>
-        <div className="glass rounded-2xl p-4 border border-purple-500/20">
-          <span className="text-xs text-muted">Private / Institutional</span>
-          <div className="text-2xl font-black text-purple-400 mt-1">
+        <div className="glass rounded-2xl p-4 border border-line">
+          <span className="text-xs text-muted font-semibold">Campus & Private</span>
+          <div className="text-2xl font-black text-purple-600 dark:text-purple-400 mt-1">
             {allRoutes.filter((r) => r.category !== 'Government').length}
           </div>
-          <span className="text-[10px] text-muted">Empaneled & Campus Fleets</span>
+          <span className="text-[10px] text-muted">Empaneled & Shuttles</span>
         </div>
-        <div className="glass rounded-2xl p-4 border border-amber-500/20">
-          <span className="text-xs text-muted">Admin Role</span>
-          <div className="text-2xl font-black text-amber-400 mt-1">SuperAdmin</div>
-          <span className="text-[10px] text-muted">Full Write & Import Access</span>
+        <div className="glass rounded-2xl p-4 border border-line">
+          <span className="text-xs text-muted font-semibold">Active Theme</span>
+          <div className="text-2xl font-black text-ink mt-1 capitalize">{theme}</div>
+          <span className="text-[10px] text-muted">Switchable Live</span>
         </div>
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex border-b border-line/15 gap-2 overflow-x-auto pb-1 text-xs font-semibold">
+      <div className="flex border-b border-line gap-2 overflow-x-auto pb-1 text-xs font-semibold">
         {[
           { id: 'manage', label: `Manage Routes (${allRoutes.length})`, icon: Database },
           { id: 'add', label: 'Add New Route', icon: PlusCircle },
-          { id: 'upload', label: 'Upload Data File (JSON/CSV)', icon: Upload },
+          { id: 'upload', label: 'Upload Data (JSON/CSV)', icon: Upload },
+          { id: 'setup', label: 'Website Setup & Themes', icon: Sliders },
           { id: 'partners', label: 'Operator Approvals', icon: Bus },
         ].map((tab) => (
           <button
@@ -282,8 +312,8 @@ export function AdminPage() {
             onClick={() => setActiveTab(tab.id as any)}
             className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap ${
               activeTab === tab.id
-                ? 'bg-blue-600 text-white shadow-glow-blue font-bold'
-                : 'glass text-muted hover:text-ink'
+                ? 'bg-accent text-white shadow-sm font-bold'
+                : 'bg-surface2 text-muted hover:text-ink border border-line'
             }`}
           >
             <tab.icon className="h-4 w-4" />
@@ -296,8 +326,8 @@ export function AdminPage() {
 
       {/* 1. MANAGE ROUTES */}
       {activeTab === 'manage' && (
-        <div className="glass rounded-3xl p-6 border border-line/20 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="glass rounded-3xl p-6 border border-line space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-line">
             <div>
               <h3 className="font-bold text-ink text-base">Active Transit Database</h3>
               <p className="text-xs text-muted">
@@ -313,18 +343,18 @@ export function AdminPage() {
                 a.download = `bustrack-live-dataset-${new Date().toISOString().split('T')[0]}.json`;
                 a.click();
               }}
-              className="btn-blue text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5"
+              className="btn-blue text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-sm"
             >
               <Download className="h-3.5 w-3.5" /> Export Current Dataset
             </button>
           </div>
 
-          <div className="divide-y divide-line/10 text-xs">
+          <div className="divide-y divide-line text-xs">
             {allRoutes.map((r) => (
               <div key={r.route_id} className="py-3 flex flex-wrap items-center justify-between gap-3">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono font-bold text-accent bg-accent/10 px-2 py-0.5 rounded">
                       {r.route_number}
                     </span>
                     <strong className="text-ink text-sm">
@@ -340,7 +370,7 @@ export function AdminPage() {
                     </span>
                   </div>
                   {r.via && <p className="text-muted text-[11px]">Via: {r.via}</p>}
-                  <p className="text-[10px] text-muted/60">
+                  <p className="text-[10px] text-muted">
                     ID: {r.route_id} • Source: {r.data_source} • {r.duration_min} mins
                   </p>
                 </div>
@@ -358,7 +388,7 @@ export function AdminPage() {
                         deleteCustomRoute(r.route_id);
                       }
                     }}
-                    className="text-red-400 hover:text-red-300 p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
+                    className="text-red-500 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
                     title="Delete route"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -372,7 +402,7 @@ export function AdminPage() {
 
       {/* 2. ADD ROUTE FORM */}
       {activeTab === 'add' && (
-        <form onSubmit={handleAddRoute} className="glass rounded-3xl p-6 sm:p-8 border border-line/20 space-y-6">
+        <form onSubmit={handleAddRoute} className="glass rounded-3xl p-6 sm:p-8 border border-line space-y-6">
           <div>
             <h3 className="font-bold text-ink text-lg">Register New Transit Route</h3>
             <p className="text-xs text-muted">
@@ -381,7 +411,7 @@ export function AdminPage() {
           </div>
 
           {formSuccess && (
-            <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-2 font-semibold">
+            <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs flex items-center gap-2 font-semibold">
               <CheckCircle2 className="h-5 w-5 shrink-0" />
               <span>{formSuccess}</span>
             </div>
@@ -389,19 +419,19 @@ export function AdminPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
             <div>
-              <label className="text-muted block mb-1 font-medium">Route Number / Code *</label>
+              <label className="label mb-1.5 block">Route Number / Code *</label>
               <input
                 type="text"
                 required
                 placeholder="e.g. 213, 20A, or EXP-01"
                 value={routeNumber}
                 onChange={(e) => setRouteNumber(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-surface rounded-xl border border-line/20 text-ink focus:border-blue-500 focus:outline-none"
+                className="input text-xs"
               />
             </div>
 
             <div>
-              <label className="text-muted block mb-1 font-medium">Operating Agency *</label>
+              <label className="label mb-1.5 block">Operating Agency *</label>
               <select
                 value={agency}
                 onChange={(e) => {
@@ -414,7 +444,7 @@ export function AdminPage() {
                       : 'Private Fleet Operator'
                   );
                 }}
-                className="w-full px-3.5 py-2.5 bg-surface rounded-xl border border-line/20 text-ink focus:border-blue-500 focus:outline-none"
+                className="input text-xs"
               >
                 <option value="CTU">CTU (Chandigarh Transport Undertaking)</option>
                 <option value="PRTC">PRTC / PUNBUS (Punjab Roadways)</option>
@@ -424,11 +454,11 @@ export function AdminPage() {
             </div>
 
             <div>
-              <label className="text-muted block mb-1 font-medium">Service Classification</label>
+              <label className="label mb-1.5 block">Service Classification</label>
               <select
                 value={serviceType}
                 onChange={(e) => setServiceType(e.target.value as any)}
-                className="w-full px-3.5 py-2.5 bg-surface rounded-xl border border-line/20 text-ink focus:border-blue-500 focus:outline-none"
+                className="input text-xs"
               >
                 <option value="Public CTU">Public CTU</option>
                 <option value="Public PRTC">Public PRTC</option>
@@ -439,56 +469,56 @@ export function AdminPage() {
             </div>
 
             <div>
-              <label className="text-muted block mb-1 font-medium">Origin Station *</label>
+              <label className="label mb-1.5 block">Origin Station *</label>
               <input
                 type="text"
                 required
                 placeholder="e.g. Landran Junction"
                 value={origin}
                 onChange={(e) => setOrigin(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-surface rounded-xl border border-line/20 text-ink focus:border-blue-500 focus:outline-none"
+                className="input text-xs"
               />
             </div>
 
             <div>
-              <label className="text-muted block mb-1 font-medium">Destination Station *</label>
+              <label className="label mb-1.5 block">Destination Station *</label>
               <input
                 type="text"
                 required
                 placeholder="e.g. ISBT Sector 43"
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-surface rounded-xl border border-line/20 text-ink focus:border-blue-500 focus:outline-none"
+                className="input text-xs"
               />
             </div>
 
             <div>
-              <label className="text-muted block mb-1 font-medium">Duration (minutes)</label>
+              <label className="label mb-1.5 block">Duration (minutes)</label>
               <input
                 type="number"
                 min={5}
                 max={600}
                 value={durationMin}
                 onChange={(e) => setDurationMin(Number(e.target.value))}
-                className="w-full px-3.5 py-2.5 bg-surface rounded-xl border border-line/20 text-ink focus:border-blue-500 focus:outline-none"
+                className="input text-xs"
               />
             </div>
 
             <div className="sm:col-span-2 lg:col-span-3">
-              <label className="text-muted block mb-1 font-medium">Via / Intermediate Stops</label>
+              <label className="label mb-1.5 block">Via / Intermediate Stops</label>
               <input
                 type="text"
                 placeholder="e.g. Sohana, Fortis Chowk, Phase 7, YPS"
                 value={via}
                 onChange={(e) => setVia(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-surface rounded-xl border border-line/20 text-ink focus:border-blue-500 focus:outline-none"
+                className="input text-xs"
               />
             </div>
           </div>
 
           <button
             type="submit"
-            className="btn-blue px-6 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-glow-blue"
+            className="btn-blue px-6 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-sm"
           >
             <PlusCircle className="h-4 w-4" /> Save & Publish Route to Database
           </button>
@@ -497,7 +527,7 @@ export function AdminPage() {
 
       {/* 3. BULK UPLOAD FILE */}
       {activeTab === 'upload' && (
-        <form onSubmit={handleJSONUpload} className="glass rounded-3xl p-6 sm:p-8 border border-line/20 space-y-4">
+        <form onSubmit={handleJSONUpload} className="glass rounded-3xl p-6 sm:p-8 border border-line space-y-4">
           <div>
             <h3 className="font-bold text-ink text-lg">Bulk Transit Data Ingestion</h3>
             <p className="text-xs text-muted">
@@ -509,8 +539,8 @@ export function AdminPage() {
             <div
               className={`p-3 rounded-xl border text-xs font-semibold ${
                 uploadStatus.includes('Error')
-                  ? 'bg-red-500/15 border-red-500/30 text-red-400'
-                  : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                  ? 'bg-red-500/10 border-red-500/30 text-red-500'
+                  : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
               }`}
             >
               {uploadStatus}
@@ -534,7 +564,7 @@ export function AdminPage() {
     "via": "Ambala, Karnal, Panipat"
   }
 ]`}
-              className="w-full p-4 bg-surface rounded-2xl border border-line/20 text-ink font-mono text-xs focus:border-blue-500 focus:outline-none"
+              className="input font-mono text-xs"
             />
           </div>
 
@@ -542,7 +572,7 @@ export function AdminPage() {
             <button
               type="submit"
               disabled={!uploadText.trim()}
-              className="btn-blue px-6 py-2.5 text-xs font-bold rounded-xl flex items-center gap-2 disabled:opacity-50"
+              className="btn-blue px-6 py-2.5 text-xs font-bold rounded-xl flex items-center gap-2 disabled:opacity-50 shadow-sm"
             >
               <Upload className="h-4 w-4" /> Validate & Merge Records
             </button>
@@ -576,9 +606,146 @@ export function AdminPage() {
         </form>
       )}
 
-      {/* 4. PARTNER APPROVALS */}
+      {/* 4. WEBSITE SETUP & THEMES TAB */}
+      {activeTab === 'setup' && (
+        <div className="glass rounded-3xl p-6 sm:p-8 border border-line space-y-6">
+          <div>
+            <h3 className="font-bold text-ink text-lg">In-App Website Setup & Visuals</h3>
+            <p className="text-xs text-muted">
+              Configure themes, global emergency banners, and showcase features directly from this portal.
+            </p>
+          </div>
+
+          {/* Theme Switcher */}
+          <div className="space-y-3 p-4 rounded-2xl bg-surface border border-line">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-bold text-ink">
+                <Palette className="h-4 w-4 text-accent" />
+                <span>Active Theme Selection</span>
+              </div>
+              <button
+                onClick={toggleTheme}
+                className="btn-outline px-3 py-1.5 text-xs font-bold rounded-xl flex items-center gap-1.5"
+              >
+                {theme === 'light' ? <Moon className="h-3.5 w-3.5 text-blue-400" /> : <Sun className="h-3.5 w-3.5 text-amber-500" />}
+                <span>Flip to {theme === 'light' ? 'Dark' : 'Light'}</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+              {THEMES.map((t) => {
+                const active = theme === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setTheme(t.id)}
+                    className={`p-3.5 rounded-2xl border text-left transition-all ${
+                      active
+                        ? 'border-accent bg-accent/10 shadow-sm ring-1 ring-accent'
+                        : 'border-line bg-surface2 hover:border-accent/40'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span
+                        className="h-5 w-5 rounded-full border border-line shadow-sm"
+                        style={{ background: t.swatch }}
+                      />
+                      {active && <Check className="h-4 w-4 text-accent" />}
+                    </div>
+                    <div className="text-xs font-bold text-ink">{t.label}</div>
+                    <div className="text-[10px] text-muted leading-tight mt-0.5">{t.description}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Live Announcement Banner Setup */}
+          <div className="space-y-3 p-4 rounded-2xl bg-surface border border-line">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-bold text-ink">
+                <Bell className="h-4 w-4 text-amber-500" />
+                <span>Global Site Announcement Broadcast</span>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-ink">
+                <input
+                  type="checkbox"
+                  checked={alertActiveInput}
+                  onChange={(e) => setAlertActiveInput(e.target.checked)}
+                  className="rounded accent-blue-600 h-4 w-4"
+                />
+                <span>Broadcast Enabled</span>
+              </label>
+            </div>
+
+            <input
+              type="text"
+              value={alertMsgInput}
+              onChange={(e) => setAlertMsgInput(e.target.value)}
+              placeholder="Broadcast text displayed at top of website…"
+              className="input text-xs"
+            />
+
+            <div className="flex items-center justify-between pt-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-semibold text-muted">Type:</span>
+                {(['info', 'warn', 'success'] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setAlertTypeInput(t)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold capitalize border ${
+                      alertTypeInput === t ? 'bg-accent/15 border-accent text-accent' : 'border-line bg-surface2 text-muted'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {setupSavedToast && (
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 animate-fade-in">
+                    <Check className="h-3.5 w-3.5" /> Broadcast updated live!
+                  </span>
+                )}
+                <button
+                  onClick={handleSaveSetup}
+                  className="btn-blue px-4 py-2 text-xs font-bold rounded-xl shadow-sm"
+                >
+                  Save & Publish Broadcast
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Hackathon Showcase Preload */}
+          <div className="p-4 rounded-2xl bg-surface border border-line flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-1.5 text-xs font-bold text-ink">
+                <Sparkles className="h-4 w-4 text-accent" />
+                <span>Preload Hackathon Evaluator Showcase</span>
+              </div>
+              <p className="text-[11px] text-muted">
+                Instantly populate demo searches, Landran to ISBT-43 routes, and live radar previews.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                loadDemoData();
+                alert('Hackathon Showcase Data Loaded! Redirecting to Home.');
+                go({ name: 'home' });
+              }}
+              className="btn-outline px-4 py-2 text-xs font-bold rounded-xl text-accent"
+            >
+              Load Showcase Data
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 5. PARTNER APPROVALS */}
       {activeTab === 'partners' && (
-        <div className="glass rounded-3xl p-6 border border-line/20 space-y-4 text-xs">
+        <div className="glass rounded-3xl p-6 border border-line space-y-4 text-xs">
           <div>
             <h3 className="font-bold text-ink text-base">Private Operator Partner Inquiries</h3>
             <p className="text-muted">
@@ -607,7 +774,7 @@ export function AdminPage() {
                 corridors: 'Landran Junction ↔ Kharar Bus Stand',
               },
             ].map((p, i) => (
-              <div key={i} className="p-4 rounded-2xl bg-surface/60 border border-line/10 space-y-2">
+              <div key={i} className="p-4 rounded-2xl bg-surface border border-line space-y-2">
                 <div className="flex items-start justify-between">
                   <div>
                     <h4 className="font-bold text-ink text-sm">{p.operator}</h4>
@@ -619,7 +786,7 @@ export function AdminPage() {
                 </div>
                 <div className="flex flex-wrap gap-4 text-muted pt-1">
                   <span>Fleet Size: <strong className="text-ink">{p.fleet}</strong></span>
-                  <span>Subscription: <strong className="text-blue-400">{p.plan}</strong></span>
+                  <span>Subscription: <strong className="text-accent">{p.plan}</strong></span>
                   <span>Corridor: <strong className="text-ink">{p.corridors}</strong></span>
                 </div>
               </div>
@@ -630,4 +797,3 @@ export function AdminPage() {
     </div>
   );
 }
-

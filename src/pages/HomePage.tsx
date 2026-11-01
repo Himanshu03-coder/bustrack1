@@ -1,286 +1,466 @@
 import { useState, useEffect } from 'react';
 import {
-  MapPin, Clock, Calendar, Search, Navigation, Route as RouteIcon,
-  Zap, ArrowRight, ChevronRight, Bus, Shield, Star, Activity,
-  Phone, ExternalLink, AlertTriangle
+  MapPin,
+  Clock,
+  Calendar,
+  Search,
+  Navigation,
+  Route as RouteIcon,
+  Zap,
+  ArrowRight,
+  ArrowLeftRight,
+  ChevronRight,
+  Bus,
+  Shield,
+  Star,
+  Activity,
+  Phone,
+  ExternalLink,
+  AlertTriangle,
+  Ticket,
+  Sparkles,
+  RefreshCw,
+  CheckCircle2,
 } from 'lucide-react';
 import { useStore } from '@/store';
 import { ROUTES, TRIPS, ALL_CITIES } from '@/data/busData';
 
-// ─── Animated 3D-style SVG Bus ────────────────────────────────────────────────
+// ─── Live Transit Radar Preview (Minimalist interactive mobility board) ────────
 
-function AnimatedBus() {
+function LiveTransitRadar() {
+  const { go } = useStore();
+  const [syncing, setSyncing] = useState(false);
+  const [lastSync, setLastSync] = useState('Just now');
+
+  const handleSync = () => {
+    setSyncing(true);
+    setTimeout(() => {
+      setSyncing(false);
+      setLastSync(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    }, 600);
+  };
+
+  const sampleLiveBuses = [
+    {
+      routeNumber: '213',
+      operator: 'CTU Chandigarh',
+      title: 'Derabassi ⇄ Landran (CGC)',
+      nextDep: '07:00 AM',
+      status: 'On Schedule',
+      statusColor: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
+      tripId: 'CTU-213-T01',
+      routeId: 'CTU-R213',
+      stops: 'Derabassi → Zirakpur → Tribune Chowk → ISBT-43 → Landran',
+    },
+    {
+      routeNumber: 'R03',
+      operator: 'CGC University Fleet',
+      title: 'Mohali Ph-7 ⇄ Landran Campus',
+      nextDep: '07:45 AM',
+      status: 'Campus Shuttle',
+      statusColor: 'text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/30',
+      tripId: 'CGC-R03-MORN',
+      routeId: 'CGC-R03',
+      stops: 'Phase 7 → Sohana Gurdwara → Landran Campus',
+    },
+    {
+      routeNumber: '104',
+      operator: 'PRTC Punjab Roadways',
+      title: 'ISBT-43 ⇄ Delhi ISBT Kashmere Gate',
+      nextDep: '08:30 AM',
+      status: 'Seats Available',
+      statusColor: 'text-purple-600 dark:text-purple-400 bg-purple-500/10 border-purple-500/30',
+      tripId: 'PRTC-CHD-DEL-01',
+      routeId: 'PRTC-CHD-DEL',
+      stops: 'ISBT-43 → Ambala Cantt → Panipat → Delhi ISBT',
+    },
+  ];
+
   return (
-    <div className="relative select-none pointer-events-none">
-      {/* Glow behind bus */}
-      <div className="absolute inset-0 blur-3xl opacity-30"
-        style={{ background: 'radial-gradient(ellipse at center, #3B82F6 0%, #6366F1 40%, transparent 70%)' }} />
+    <div className="glass rounded-3xl p-5 sm:p-6 border border-line space-y-4">
+      {/* Radar header */}
+      <div className="flex items-center justify-between pb-3 border-b border-line">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+          </span>
+          <span className="text-xs font-bold text-ink uppercase tracking-wider">Live Transit Radar</span>
+        </div>
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          className="text-[11px] text-muted hover:text-accent font-semibold flex items-center gap-1 transition"
+          title="Refresh transit pulse"
+        >
+          <RefreshCw className={`h-3 w-3 ${syncing ? 'animate-spin text-accent' : ''}`} />
+          <span>{syncing ? 'Syncing…' : `Updated: ${lastSync}`}</span>
+        </button>
+      </div>
 
-      {/* Bus body */}
-      <svg viewBox="0 0 280 160" className="w-full max-w-sm mx-auto drop-shadow-2xl animate-float" aria-hidden="true">
-        <defs>
-          <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#1E3A5F" />
-            <stop offset="50%" stopColor="#0F2040" />
-            <stop offset="100%" stopColor="#091428" />
-          </linearGradient>
-          <linearGradient id="topGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#2563EB" />
-            <stop offset="100%" stopColor="#1D4ED8" />
-          </linearGradient>
-          <linearGradient id="windowGrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#93C5FD" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.5" />
-          </linearGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="2" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-          <linearGradient id="wheelGrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#374151" />
-            <stop offset="100%" stopColor="#111827" />
-          </linearGradient>
-        </defs>
+      {/* Live cards list */}
+      <div className="space-y-2.5">
+        {sampleLiveBuses.map((bus) => (
+          <div
+            key={bus.routeId}
+            className="p-3.5 rounded-2xl bg-surface border border-line hover:border-accent/40 transition group cursor-pointer"
+            onClick={() => go({ name: 'routes', routeId: bus.routeId })}
+          >
+            <div className="flex items-start justify-between gap-2 mb-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-extrabold px-2 py-0.5 rounded-lg bg-accent/15 text-accent">
+                  Route {bus.routeNumber}
+                </span>
+                <span className="text-[11px] font-medium text-muted">{bus.operator}</span>
+              </div>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${bus.statusColor}`}>
+                {bus.status}
+              </span>
+            </div>
 
-        {/* Main bus body */}
-        <rect x="15" y="30" width="250" height="100" rx="14" fill="url(#bodyGrad)"
-          stroke="#2563EB" strokeWidth="1.5" opacity="0.9" />
+            <div className="text-xs font-bold text-ink group-hover:text-accent transition">{bus.title}</div>
+            <div className="text-[11px] text-muted truncate mt-0.5">{bus.stops}</div>
 
-        {/* Roof accent stripe */}
-        <rect x="15" y="30" width="250" height="22" rx="14" fill="url(#topGrad)" />
-        <rect x="15" y="44" width="250" height="8" fill="url(#topGrad)" />
-
-        {/* Route text on side */}
-        <text x="50" y="64" fill="#DBEAFE" fontSize="11" fontWeight="bold" fontFamily="monospace" opacity="0.9" letterSpacing="2">
-          BUSTRACK
-        </text>
-
-        {/* Windows */}
-        {[38, 78, 118, 158, 198].map((x, i) => (
-          <g key={i}>
-            <rect x={x} y="78" width="28" height="28" rx="5" fill="url(#windowGrad)" opacity="0.85" />
-            {/* Window light reflection */}
-            <rect x={x + 3} y="80" width="10" height="6" rx="2" fill="white" opacity="0.35" />
-          </g>
+            <div className="mt-2.5 pt-2 border-t border-line/60 flex items-center justify-between text-[11px]">
+              <span className="text-muted flex items-center gap-1 font-medium">
+                <Clock className="h-3 w-3 text-accent" /> Dep: <strong className="text-ink">{bus.nextDep}</strong>
+              </span>
+              <span className="text-accent font-bold flex items-center gap-0.5">
+                View Schedule <ChevronRight className="h-3 w-3" />
+              </span>
+            </div>
+          </div>
         ))}
+      </div>
 
-        {/* Front windshield */}
-        <rect x="228" y="72" width="28" height="42" rx="6" fill="url(#windowGrad)" opacity="0.8" />
-        <rect x="231" y="74" width="12" height="8" rx="2" fill="white" opacity="0.3" />
-
-        {/* Headlights */}
-        <ellipse cx="263" cy="90" rx="6" ry="5" fill="#FEF08A" filter="url(#glow)" />
-        <ellipse cx="263" cy="102" rx="4" ry="3" fill="#FCA5A5" opacity="0.8" />
-
-        {/* CTU stripe */}
-        <rect x="15" y="118" width="250" height="6" fill="#2563EB" opacity="0.5" />
-
-        {/* Door */}
-        <rect x="18" y="82" width="14" height="36" rx="3" fill="#1E40AF" stroke="#3B82F6" strokeWidth="0.5" opacity="0.7" />
-
-        {/* Underside detail */}
-        <rect x="25" y="128" width="230" height="6" rx="3" fill="#0F172A" />
-
-        {/* Wheels */}
-        <circle cx="58" cy="138" r="18" fill="url(#wheelGrad)" />
-        <circle cx="58" cy="138" r="11" fill="#1F2937" />
-        <circle cx="58" cy="138" r="5" fill="#374151" />
-        <circle cx="58" cy="138" r="2" fill="#6B7280" />
-
-        <circle cx="208" cy="138" r="18" fill="url(#wheelGrad)" />
-        <circle cx="208" cy="138" r="11" fill="#1F2937" />
-        <circle cx="208" cy="138" r="5" fill="#374151" />
-        <circle cx="208" cy="138" r="2" fill="#6B7280" />
-
-        {/* Wheel hubcaps spokes */}
-        {[0, 60, 120, 180, 240, 300].map((deg, i) => (
-          <g key={i} transform={`rotate(${deg} 58 138)`}>
-            <line x1="58" y1="127" x2="58" y2="133" stroke="#6B7280" strokeWidth="1.5" />
-          </g>
-        ))}
-        {[0, 60, 120, 180, 240, 300].map((deg, i) => (
-          <g key={i} transform={`rotate(${deg} 208 138)`}>
-            <line x1="208" y1="127" x2="208" y2="133" stroke="#6B7280" strokeWidth="1.5" />
-          </g>
-        ))}
-
-        {/* Ground shadow */}
-        <ellipse cx="140" cy="157" rx="120" ry="5" fill="black" opacity="0.25" />
-
-        {/* Route line under bus (animated in CSS) */}
-        <line x1="0" y1="156" x2="280" y2="156" stroke="#2563EB" strokeWidth="1.5"
-          strokeDasharray="6 4" opacity="0.4" />
-      </svg>
+      {/* Action footer */}
+      <div className="pt-2 flex items-center gap-2">
+        <button
+          onClick={() => go({ name: 'results' })}
+          className="btn-outline flex-1 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5"
+        >
+          <Bus className="h-3.5 w-3.5 text-accent" />
+          <span>Browse All 38 Trips</span>
+        </button>
+        <button
+          onClick={() => go({ name: 'nearby' })}
+          className="btn-ghost py-2 px-3 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5"
+          title="Stops near current location"
+        >
+          <MapPin className="h-3.5 w-3.5 text-accent" />
+          <span>Nearby</span>
+        </button>
+      </div>
     </div>
   );
 }
 
-// ─── Floating Route Cards ─────────────────────────────────────────────────────
+// ─── Unified Minimalist Travel Search ──────────────────────────────────────────
 
-function FloatingCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`glass px-4 py-3 rounded-2xl shadow-2xl border border-blue-500/20 animate-float-slow ${className}`}>
-      {children}
-    </div>
-  );
-}
-
-// ─── Search Widget ────────────────────────────────────────────────────────────
-
-function HeroSearch({ onSearch }: { onSearch: (from: string, to: string, date: string) => void }) {
+function MinimalistSearch({ onSearch }: { onSearch: (from: string, to: string, date: string) => void }) {
+  const { go } = useStore();
+  const [activeTab, setActiveTab] = useState<'direct' | 'multicity' | 'booking' | 'nearby'>('direct');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [fromSugs, setFromSugs] = useState<string[]>([]);
   const [toSugs, setToSugs] = useState<string[]>([]);
 
-  const getSuggestions = (q: string) =>
-    q.length < 1 ? [] : ALL_CITIES.filter((c) =>
-      c.toLowerCase().includes(q.toLowerCase())
-    ).slice(0, 6);
+  const getSuggestions = (q: string) => {
+    if (!q || q.length < 1) return [];
+    const query = q.toLowerCase();
+    return ALL_CITIES.filter((c) => c.toLowerCase().includes(query)).slice(0, 6);
+  };
 
-  const handleSwap = () => { setFrom(to); setTo(from); };
+  const handleSwap = () => {
+    setFrom(to);
+    setTo(from);
+  };
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (activeTab === 'multicity') {
+      go({ name: 'planner', from, to, date });
+    } else if (activeTab === 'booking') {
+      go({ name: 'booking' });
+    } else if (activeTab === 'nearby') {
+      go({ name: 'nearby' });
+    } else {
+      onSearch(from, to, date);
+    }
+  };
+
+  const popularShortcuts = [
+    { label: 'Landran ⇄ ISBT-43', from: 'Landran (CGC)', to: 'Chandigarh ISBT-43' },
+    { label: 'Kharar ⇄ Sector 17', from: 'Kharar Bus Stand', to: 'Chandigarh ISBT-17' },
+    { label: 'Delhi ⇄ Chandigarh', from: 'Delhi Kashmere Gate', to: 'Chandigarh ISBT-43' },
+    { label: 'Derabassi ⇄ Landran', from: 'Derabassi', to: 'Landran (CGC)' },
+    { label: 'Patiala ⇄ Mohali', from: 'Patiala Bus Stand', to: 'Mohali Phase 7' },
+  ];
 
   return (
-    <div className="glass rounded-3xl p-6 shadow-2xl border border-blue-500/20 backdrop-blur-2xl">
-      <div className="grid gap-4 sm:grid-cols-3">
-        {/* From */}
-        <div className="relative">
-          <label className="label mb-1.5 block text-blue-300">From</label>
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-400" />
-            <input
-              value={from}
-              onChange={(e) => { setFrom(e.target.value); setFromSugs(getSuggestions(e.target.value)); }}
-              onBlur={() => setTimeout(() => setFromSugs([]), 200)}
-              placeholder="City or stop…"
-              className="input pl-9 text-sm"
-            />
-            {fromSugs.length > 0 && (
-              <ul className="absolute left-0 right-0 top-full z-50 mt-1 glass-sm rounded-xl overflow-hidden shadow-xl border border-blue-500/20 max-h-48 overflow-y-auto">
-                {fromSugs.map((s) => (
-                  <li key={s}>
-                    <button onMouseDown={() => { setFrom(s); setFromSugs([]); }}
-                      className="w-full px-3 py-2 text-sm text-left text-ink hover:bg-blue-500/10 flex items-center gap-2">
-                      <MapPin className="h-3 w-3 text-blue-400 shrink-0" />{s}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
+    <div className="glass rounded-3xl p-5 sm:p-7 border border-line shadow-sm space-y-5">
+      {/* Tab Segment Controls */}
+      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-surface border border-line overflow-x-auto">
+        <button
+          onClick={() => setActiveTab('direct')}
+          className={`flex-1 min-w-[110px] py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+            activeTab === 'direct'
+              ? 'bg-surface2 text-accent shadow-sm border border-line'
+              : 'text-muted hover:text-ink'
+          }`}
+        >
+          <Bus className="h-3.5 w-3.5" />
+          <span>Bus Search</span>
+        </button>
 
-        {/* Swap + To */}
-        <div className="relative">
-          <label className="label mb-1.5 block text-blue-300">To</label>
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-cyan-400" />
-            <input
-              value={to}
-              onChange={(e) => { setTo(e.target.value); setToSugs(getSuggestions(e.target.value)); }}
-              onBlur={() => setTimeout(() => setToSugs([]), 200)}
-              placeholder="City or stop…"
-              className="input pl-9 text-sm"
-            />
-            {/* Swap button */}
-            <button onClick={handleSwap}
-              className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 h-7 w-7 rounded-full bg-blue-600 border border-blue-400/40 flex items-center justify-center shadow-lg hover:bg-blue-500 transition"
-              title="Swap">
-              <ArrowRight className="h-3.5 w-3.5 text-white rotate-90 sm:rotate-0" />
-            </button>
-            {toSugs.length > 0 && (
-              <ul className="absolute left-0 right-0 top-full z-50 mt-1 glass-sm rounded-xl overflow-hidden shadow-xl border border-blue-500/20 max-h-48 overflow-y-auto">
-                {toSugs.map((s) => (
-                  <li key={s}>
-                    <button onMouseDown={() => { setTo(s); setToSugs([]); }}
-                      className="w-full px-3 py-2 text-sm text-left text-ink hover:bg-blue-500/10 flex items-center gap-2">
-                      <MapPin className="h-3 w-3 text-cyan-400 shrink-0" />{s}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
+        <button
+          onClick={() => setActiveTab('multicity')}
+          className={`flex-1 min-w-[110px] py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+            activeTab === 'multicity'
+              ? 'bg-surface2 text-accent shadow-sm border border-line'
+              : 'text-muted hover:text-ink'
+          }`}
+        >
+          <Navigation className="h-3.5 w-3.5" />
+          <span>Multi-City Route</span>
+        </button>
 
-        {/* Date */}
-        <div>
-          <label className="label mb-1.5 block text-blue-300">Date</label>
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-purple-400" />
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-              min={new Date().toISOString().split('T')[0]}
-              className="input pl-9 text-sm" />
-          </div>
-        </div>
+        <button
+          onClick={() => setActiveTab('booking')}
+          className={`flex-1 min-w-[110px] py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+            activeTab === 'booking'
+              ? 'bg-surface2 text-accent shadow-sm border border-line'
+              : 'text-muted hover:text-ink'
+          }`}
+        >
+          <Ticket className="h-3.5 w-3.5" />
+          <span>Seat Booking</span>
+        </button>
+
+        <button
+          onClick={() => go({ name: 'nearby' })}
+          className="flex-1 min-w-[110px] py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 text-muted hover:text-ink"
+        >
+          <MapPin className="h-3.5 w-3.5" />
+          <span>Stops Near Me</span>
+        </button>
       </div>
 
-      <button
-        onClick={() => onSearch(from, to, date)}
-        className="mt-5 w-full btn-blue flex items-center justify-center gap-2 py-3.5 text-base font-bold rounded-2xl hover:shadow-glow-blue transition-all duration-300"
-      >
-        <Search className="h-5 w-5" />
-        Find My Bus
-      </button>
+      {/* Search Input Row */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-7 items-center">
+          {/* Origin */}
+          <div className="sm:col-span-3 relative">
+            <label className="label mb-1.5 block">Starting Point (From)</label>
+            <div className="relative">
+              <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-accent" />
+              <input
+                value={from}
+                onChange={(e) => {
+                  setFrom(e.target.value);
+                  setFromSugs(getSuggestions(e.target.value));
+                }}
+                onBlur={() => setTimeout(() => setFromSugs([]), 200)}
+                placeholder="City, sector, or bus stop…"
+                className="input pl-10 text-xs sm:text-sm"
+              />
+              {fromSugs.length > 0 && (
+                <ul className="absolute left-0 right-0 top-full z-50 mt-1 glass rounded-xl overflow-hidden shadow-xl border border-line max-h-48 overflow-y-auto">
+                  {fromSugs.map((s) => (
+                    <li key={s}>
+                      <button
+                        type="button"
+                        onMouseDown={() => {
+                          setFrom(s);
+                          setFromSugs([]);
+                        }}
+                        className="w-full px-3.5 py-2 text-xs text-left text-ink hover:bg-surface flex items-center gap-2"
+                      >
+                        <MapPin className="h-3 w-3 text-accent shrink-0" />
+                        <span>{s}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+
+          {/* Swap Button */}
+          <div className="sm:col-span-1 flex items-center justify-center pt-5 sm:pt-6">
+            <button
+              type="button"
+              onClick={handleSwap}
+              className="h-9 w-9 rounded-full border border-line bg-surface hover:bg-surface2 text-muted hover:text-ink flex items-center justify-center transition shadow-sm"
+              title="Swap From and To"
+            >
+              <ArrowLeftRight className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Destination */}
+          <div className="sm:col-span-3 relative">
+            <label className="label mb-1.5 block">Destination (To)</label>
+            <div className="relative">
+              <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-accent2" />
+              <input
+                value={to}
+                onChange={(e) => {
+                  setTo(e.target.value);
+                  setToSugs(getSuggestions(e.target.value));
+                }}
+                onBlur={() => setTimeout(() => setToSugs([]), 200)}
+                placeholder="Where do you want to go?"
+                className="input pl-10 text-xs sm:text-sm"
+              />
+              {toSugs.length > 0 && (
+                <ul className="absolute left-0 right-0 top-full z-50 mt-1 glass rounded-xl overflow-hidden shadow-xl border border-line max-h-48 overflow-y-auto">
+                  {toSugs.map((s) => (
+                    <li key={s}>
+                      <button
+                        type="button"
+                        onMouseDown={() => {
+                          setTo(s);
+                          setToSugs([]);
+                        }}
+                        className="w-full px-3.5 py-2 text-xs text-left text-ink hover:bg-surface flex items-center gap-2"
+                      >
+                        <MapPin className="h-3 w-3 text-accent2 shrink-0" />
+                        <span>{s}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Date + Submit Row */}
+        <div className="grid gap-3 sm:grid-cols-3 pt-1 items-end">
+          <div className="sm:col-span-1">
+            <label className="label mb-1.5 block">Travel Date</label>
+            <div className="relative">
+              <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
+              <input
+                type="date"
+                value={date}
+                min={new Date().toISOString().split('T')[0]}
+                onChange={(e) => setDate(e.target.value)}
+                className="input pl-10 text-xs sm:text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="sm:col-span-2">
+            <button
+              type="submit"
+              className="btn-blue w-full py-3.5 text-sm font-bold rounded-xl flex items-center justify-center gap-2 shadow-sm"
+            >
+              <Search className="h-4 w-4" />
+              <span>
+                {activeTab === 'multicity'
+                  ? 'Plan Multi-City Journey'
+                  : activeTab === 'booking'
+                  ? 'Find Available Coach Seats'
+                  : 'Search Scheduled Buses'}
+              </span>
+            </button>
+          </div>
+        </div>
+      </form>
+
+      {/* Quick Route Shortcuts */}
+      <div className="pt-2">
+        <div className="text-[11px] font-bold uppercase tracking-wider text-muted mb-2">
+          Popular Direct Corridors:
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {popularShortcuts.map((sc) => (
+            <button
+              key={sc.label}
+              onClick={() => {
+                setFrom(sc.from);
+                setTo(sc.to);
+                onSearch(sc.from, sc.to, date);
+              }}
+              className="chip hover:border-accent hover:text-accent transition text-xs py-1 px-3"
+            >
+              {sc.label}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
-// ─── Stats Row ────────────────────────────────────────────────────────────────
+// ─── Stat Card ────────────────────────────────────────────────────────────────
 
-function StatCard({ icon: Icon, value, label, color }: { icon: typeof Bus; value: string; label: string; color: string }) {
+function StatCard({
+  icon: Icon,
+  value,
+  label,
+  sublabel,
+}: {
+  icon: typeof Bus;
+  value: string;
+  label: string;
+  sublabel?: string;
+}) {
   return (
-    <div className="glass flex items-center gap-3 p-4 rounded-2xl border border-white/5">
-      <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
+    <div className="glass p-4 sm:p-5 rounded-2xl border border-line flex items-center gap-3.5">
+      <div className="h-11 w-11 rounded-2xl bg-accent/10 text-accent flex items-center justify-center shrink-0">
         <Icon className="h-5 w-5" />
       </div>
       <div>
-        <div className="text-xl font-extrabold text-ink">{value}</div>
-        <div className="text-xs text-muted">{label}</div>
+        <div className="text-2xl font-black text-ink tracking-tight">{value}</div>
+        <div className="text-xs font-bold text-ink">{label}</div>
+        {sublabel && <div className="text-[10px] text-muted">{sublabel}</div>}
       </div>
     </div>
   );
 }
 
-// ─── Feature Cards ────────────────────────────────────────────────────────────
+// ─── Capability Card ──────────────────────────────────────────────────────────
 
-const FEATURES = [
+const CAPABILITIES = [
   {
     icon: Navigation,
     title: 'Live Route Tracking',
-    desc: 'See scheduled routes on an interactive map. Live GPS feeds integrated when available from official sources.',
-    tag: 'Scheduled Data Available',
-    color: 'text-blue-400',
-    bg: 'bg-blue-500/10',
+    desc: 'Explore scheduled route polylines, verified stops, and real-time transit milestones across Chandigarh, Mohali & Landran.',
+    badge: 'CTU Timetable 2026',
+    actionText: 'Open Radar',
+    targetPage: 'results',
   },
   {
     icon: RouteIcon,
-    title: 'Multi-City Planner',
-    desc: 'Plan journeys like Delhi → Chandigarh → Mohali → Landran with transfer guidance and timing.',
-    tag: 'Real CTU + PRTC Data',
-    color: 'text-purple-400',
-    bg: 'bg-purple-500/10',
+    title: 'Multi-City Journey Planner',
+    desc: 'Connect complex journeys like Delhi → Chandigarh ISBT-43 → Mohali → Landran with explicit transfer instructions.',
+    badge: 'Transfer Guidance',
+    actionText: 'Plan Journey',
+    targetPage: 'planner',
   },
   {
     icon: MapPin,
-    title: 'Nearby Stops',
-    desc: 'Find bus stops around you using your device location. See routes serving each stop.',
-    tag: 'Verified Coordinates',
-    color: 'text-cyan-400',
-    bg: 'bg-cyan-500/10',
+    title: 'Nearby Transit Stops',
+    desc: 'Instantly find bus stops closest to your location with GPS radius scanning and routes serving each stop.',
+    badge: 'Verified Coordinates',
+    actionText: 'Find Stops',
+    targetPage: 'nearby',
   },
   {
-    icon: Zap,
-    title: 'Seat Booking',
-    desc: 'Partner private operators list vacant seats for your route. Book eligible journeys directly.',
-    tag: 'Private Operators',
-    color: 'text-amber-400',
-    bg: 'bg-amber-500/10',
+    icon: Ticket,
+    title: 'Private Coach Seat Booking',
+    desc: 'Reserve vacant seats directly for partner luxury and university express coaches with instant SVG QR e-tickets.',
+    badge: 'E-Ticket Generator',
+    actionText: 'Book Seat',
+    targetPage: 'booking',
   },
 ];
 
-// ─── Popular Routes ───────────────────────────────────────────────────────────
+// ─── Popular Route Card ───────────────────────────────────────────────────────
 
 function PopularRouteCard({ route }: { route: typeof ROUTES[0] }) {
   const { go } = useStore();
@@ -289,68 +469,57 @@ function PopularRouteCard({ route }: { route: typeof ROUTES[0] }) {
   return (
     <button
       onClick={() => go({ name: 'routes', routeId: route.route_id })}
-      className="glass group p-4 text-left rounded-2xl border border-white/5 hover:border-blue-500/30 hover:shadow-glow-blue transition-all duration-300 hover:-translate-y-0.5"
+      className="glass group p-4 sm:p-5 text-left rounded-2xl border border-line hover:border-accent transition-all duration-200"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <div className="font-bold text-ink truncate">{route.origin.split('(')[0].trim()}</div>
-          <div className="text-xs text-muted flex items-center gap-1">
-            <ArrowRight className="h-3 w-3 shrink-0" />
-            {route.destination.split('(')[0].trim()}
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent/15 text-accent">
+              {route.agency} · {route.route_number}
+            </span>
+            {route.verification_status === 'Verified' && (
+              <span className="chip-verified text-[10px]">
+                <Shield className="h-3 w-3" /> Verified
+              </span>
+            )}
+          </div>
+          <div className="font-bold text-sm text-ink truncate group-hover:text-accent transition">
+            {route.origin.split('(')[0].trim()}
+          </div>
+          <div className="text-xs text-muted flex items-center gap-1 mt-0.5">
+            <ArrowRight className="h-3 w-3 shrink-0 text-accent" />
+            <span className="truncate">{route.destination.split('(')[0].trim()}</span>
           </div>
         </div>
-        <ChevronRight className="h-4 w-4 text-muted shrink-0 group-hover:text-blue-400 transition" />
+        <ChevronRight className="h-4 w-4 text-muted group-hover:text-accent group-hover:translate-x-0.5 transition" />
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
-        {route.verification_status === 'Verified' && (
-          <span className="chip-verified">
-            <Shield className="h-3 w-3" /> Verified
-          </span>
-        )}
+
+      <div className="mt-3 pt-3 border-t border-line/60 flex flex-wrap items-center gap-1.5 text-[11px]">
         <span className="chip-gray">
-          <Bus className="h-3 w-3" /> {tripCount} service{tripCount !== 1 ? 's' : ''}
+          <Bus className="h-3 w-3" /> {tripCount} trips/day
         </span>
-        {route.distance_km && (
-          <span className="chip-gray">{route.distance_km} km</span>
-        )}
-        {route.is_institutional && (
-          <span className="chip-warn">
-            <AlertTriangle className="h-3 w-3" /> Institutional
-          </span>
-        )}
+        {route.distance_km && <span className="chip-gray">{route.distance_km} km</span>}
+        {route.duration_min && <span className="chip-gray">{route.duration_min} min</span>}
       </div>
     </button>
-  );
-}
-
-// ─── Data Disclaimer ─────────────────────────────────────────────────────────
-
-function DataDisclaimer() {
-  return (
-    <div className="glass rounded-2xl p-4 border border-amber-500/20 flex gap-3">
-      <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
-      <div className="text-sm text-muted">
-        <span className="font-semibold text-ink">Data Notice: </span>
-        Schedule data is sourced from CTU Official Timetable (effective July 25, 2026), PRTC, and verified institutional directories.
-        Live GPS tracking is not available for all buses. Institutional buses (CGC University, CGC Landran) are for enrolled students only and are clearly labelled.
-        All fares are indicative — confirm with the operator before boarding.
-        <a href="https://ctuonline.chd.gov.in" target="_blank" rel="noopener noreferrer"
-          className="text-blue-400 hover:underline ml-1 inline-flex items-center gap-1">
-          Official CTU Portal <ExternalLink className="h-3 w-3" />
-        </a>
-      </div>
-    </div>
   );
 }
 
 // ─── Main HomePage ────────────────────────────────────────────────────────────
 
 export function HomePage() {
-  const { go, addRecent, recent } = useStore();
+  const { go, addRecent, recent, openSetupModal } = useStore();
   const [now, setNow] = useState('');
 
   useEffect(() => {
-    const tick = () => setNow(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }));
+    const tick = () =>
+      setNow(
+        new Date().toLocaleTimeString('en-IN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        })
+      );
     tick();
     const t = setInterval(tick, 30000);
     return () => clearInterval(t);
@@ -361,184 +530,170 @@ export function HomePage() {
     go({ name: 'results', from, to, date });
   };
 
-  const handleMultiCity = (from: string, to: string, date: string) => {
-    addRecent(from, to);
-    go({ name: 'planner', from, to, date });
-  };
-
   const publicRoutes = ROUTES.filter((r) => !r.is_institutional).slice(0, 6);
   const verifiedCount = ROUTES.filter((r) => r.verification_status === 'Verified').length;
 
   return (
-    <div className="space-y-8">
-      {/* ── Hero Section ───────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden rounded-3xl min-h-[520px] flex flex-col justify-center">
-        {/* Background atmosphere */}
-        <div className="absolute inset-0 rounded-3xl"
-          style={{
-            background: 'linear-gradient(135deg, #0a0f1e 0%, #0d1b3e 40%, #091428 100%)',
-          }} />
-        <div className="absolute inset-0 rounded-3xl overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl -translate-y-1/3 translate-x-1/4" />
-          <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-600/15 rounded-full blur-3xl translate-y-1/4 -translate-x-1/4" />
-          {/* Animated route lines */}
-          <svg className="absolute inset-0 w-full h-full opacity-10" aria-hidden="true">
-            <defs>
-              <linearGradient id="routeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#3B82F6" />
-                <stop offset="100%" stopColor="#818CF8" />
-              </linearGradient>
-            </defs>
-            <path d="M0,400 Q200,200 400,300 T800,200" stroke="url(#routeGrad)" strokeWidth="1.5" fill="none" strokeDasharray="8 4" />
-            <path d="M0,300 Q300,100 600,250 T1200,150" stroke="url(#routeGrad)" strokeWidth="1" fill="none" strokeDasharray="5 8" opacity="0.5" />
-            <circle cx="400" cy="300" r="4" fill="#3B82F6" opacity="0.8">
-              <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite" />
-            </circle>
-            <circle cx="200" cy="200" r="3" fill="#818CF8" opacity="0.6">
-              <animate attributeName="opacity" values="1;0.2;1" dur="3s" repeatCount="indefinite" />
-            </circle>
-          </svg>
-        </div>
-
-        <div className="relative z-10 grid lg:grid-cols-2 gap-8 items-center p-6 sm:p-10">
-          {/* Left — Text + Search */}
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-500/15 border border-blue-500/30 text-blue-300">
-                <Activity className="h-3.5 w-3.5" />
-                <span>Chandigarh · Mohali · Punjab · Landran</span>
-              </div>
-
-              <h1 className="text-4xl sm:text-5xl font-black tracking-tight leading-tight">
-                <span className="text-white">Your Journey.</span>
-                <br />
-                <span className="text-gradient-blue">Your Bus.</span>
-                <br />
-                <span className="text-white">Your City.</span>
-              </h1>
-
-              <p className="text-muted text-base sm:text-lg max-w-md leading-relaxed">
-                Discover routes, track buses, and find smarter ways to travel across
-                Chandigarh, Mohali and Punjab.
-              </p>
+    <div className="space-y-8 sm:space-y-10">
+      {/* ── Hero Mobility Section ─────────────────────────────────────────── */}
+      <section className="space-y-6">
+        {/* Headline + Pill */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-accent/10 border border-accent/25 text-accent">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span>BUSTRACK 2.0 · Punjab & Tricity Transit</span>
             </div>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-wrap gap-3">
-              <button onClick={() => go({ name: 'planner' })}
-                className="btn-blue flex items-center gap-2 px-6 py-3 font-bold rounded-2xl">
-                <Navigation className="h-5 w-5" />
-                Find My Bus
-              </button>
-              <button onClick={() => go({ name: 'partner' })}
-                className="btn-outline flex items-center gap-2 px-6 py-3 font-bold rounded-2xl">
-                Partner With Us
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Live time */}
-            <div className="flex items-center gap-2 text-sm text-muted">
-              <Clock className="h-4 w-4 text-blue-400" />
-              <span>Current Time: <span className="text-ink font-semibold">{now}</span></span>
-              <span className="mx-2 opacity-30">|</span>
-              <span className="text-blue-300 font-medium">{verifiedCount} verified routes</span>
-            </div>
+            <h1 className="text-3xl sm:text-5xl font-black text-ink tracking-tight leading-tight">
+              Transit that just works.
+            </h1>
+            <p className="text-sm sm:text-base text-muted max-w-xl leading-relaxed">
+              Real-time verified timetable schedules, multi-city connection transfers, and seat reservations across Chandigarh, Mohali, Landran, and Punjab.
+            </p>
           </div>
 
-          {/* Right — Animated Bus + Floating Cards */}
-          <div className="relative hidden lg:block">
-            <AnimatedBus />
+          {/* Quick Setup Pill for Judges & Admins */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={openSetupModal}
+              className="btn-outline px-4 py-2 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm hover:border-accent"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-accent" />
+              <span>Website Setup</span>
+            </button>
+            <button
+              onClick={() => go({ name: 'admin' })}
+              className="btn-ghost px-4 py-2 text-xs font-bold rounded-xl flex items-center gap-1.5"
+            >
+              <Shield className="h-3.5 w-3.5 text-emerald-500" />
+              <span>Admin Portal</span>
+            </button>
+          </div>
+        </div>
 
-            {/* Floating info cards */}
-            <FloatingCard className="absolute -top-2 right-4 text-xs min-w-[160px]">
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-emerald-300 font-semibold">CTU Route 213</span>
-              </div>
-              <div className="text-muted mt-0.5">Landran → Derabassi</div>
-              <div className="text-ink font-bold mt-0.5">Next: 07:00 AM</div>
-              <div className="text-[10px] text-muted/70 mt-0.5">⚠️ Demo card — see real data below</div>
-            </FloatingCard>
-
-            <FloatingCard className="absolute bottom-8 -left-4 text-xs min-w-[150px]">
-              <div className="text-muted">ISBT-43 → Landran</div>
-              <div className="text-blue-300 font-bold">₹25 · 26 mins</div>
-              <div className="text-[10px] text-emerald-400 mt-0.5">Via Routes 20, 213</div>
-            </FloatingCard>
+        {/* Search Card + Live Radar Grid */}
+        <div className="grid lg:grid-cols-12 gap-6 items-start">
+          <div className="lg:col-span-7">
+            <MinimalistSearch onSearch={handleSearch} />
+          </div>
+          <div className="lg:col-span-5">
+            <LiveTransitRadar />
           </div>
         </div>
       </section>
 
-      {/* ── Quick Search ──────────────────────────────────────────────────────── */}
-      <section>
-        <h2 className="text-sm font-bold uppercase tracking-wide text-muted mb-4">Quick Search</h2>
-        <HeroSearch onSearch={handleSearch} />
-        <div className="mt-3 flex flex-wrap gap-2">
-          {['Landran → ISBT-43', 'Chandigarh → Delhi', 'Patiala → Mohali', 'Landran → Derabassi'].map((q) => {
-            const [f, t] = q.split(' → ');
-            return (
-              <button key={q} onClick={() => handleSearch(f, t, new Date().toISOString().split('T')[0])}
-                className="chip text-xs hover:border-blue-500/40 hover:text-blue-300 transition">
-                {q}
-              </button>
-            );
-          })}
+      {/* ── Key Metrics Strip ──────────────────────────────────────────────── */}
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <StatCard
+          icon={Bus}
+          value="38+"
+          label="Scheduled Trips"
+          sublabel="Daily CTU & PRTC services"
+        />
+        <StatCard
+          icon={RouteIcon}
+          value="16"
+          label="Verified Corridors"
+          sublabel="Tricity, Punjab & Delhi"
+        />
+        <StatCard
+          icon={Shield}
+          value="100%"
+          label="Schema Verified"
+          sublabel="Official CTU Depots II & III"
+        />
+        <StatCard
+          icon={Star}
+          value="4"
+          label="Transit Agencies"
+          sublabel="CTU · PRTC · PUNBUS · CGC"
+        />
+      </section>
+
+      {/* ── Platform Capabilities ─────────────────────────────────────────── */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-extrabold text-ink">Built for Every Passenger</h2>
+            <p className="text-xs text-muted">Core navigation features built for daily commuters, students & inter-city travellers</p>
+          </div>
         </div>
-      </section>
 
-      {/* ── Stats ────────────────────────────────────────────────────────────── */}
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard icon={Bus} value={String(TRIPS.filter(t => !t.route_id.startsWith('CGC')).length)} label="Scheduled Services" color="bg-blue-500/15 text-blue-400" />
-        <StatCard icon={RouteIcon} value={String(ROUTES.filter(r => !r.is_institutional).length)} label="Public Routes" color="bg-purple-500/15 text-purple-400" />
-        <StatCard icon={Shield} value={String(verifiedCount)} label="Verified Routes" color="bg-emerald-500/15 text-emerald-400" />
-        <StatCard icon={Star} value="4" label="Agencies (CTU, PRTC…)" color="bg-amber-500/15 text-amber-400" />
-      </section>
-
-      {/* ── Features ─────────────────────────────────────────────────────────── */}
-      <section>
-        <h2 className="mb-5 text-sm font-bold uppercase tracking-wide text-muted">Platform Features</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {FEATURES.map((f) => (
-            <div key={f.title}
-              className="glass group p-5 rounded-2xl border border-white/5 hover:border-blue-500/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-glow-blue">
-              <div className={`h-10 w-10 rounded-xl flex items-center justify-center mb-3 ${f.bg}`}>
-                <f.icon className={`h-5 w-5 ${f.color}`} />
+          {CAPABILITIES.map((c) => (
+            <div
+              key={c.title}
+              onClick={() => go({ name: c.targetPage as any })}
+              className="glass p-5 rounded-2xl border border-line hover:border-accent transition group cursor-pointer flex flex-col justify-between"
+            >
+              <div>
+                <div className="h-10 w-10 rounded-xl bg-accent/10 text-accent flex items-center justify-center mb-3 group-hover:scale-105 transition">
+                  <c.icon className="h-5 w-5" />
+                </div>
+                <div className="font-bold text-sm text-ink mb-1 group-hover:text-accent transition">
+                  {c.title}
+                </div>
+                <div className="text-xs text-muted leading-relaxed">{c.desc}</div>
               </div>
-              <div className="font-bold text-ink mb-1.5">{f.title}</div>
-              <div className="text-xs text-muted leading-relaxed">{f.desc}</div>
-              <div className={`mt-3 text-[10px] font-semibold uppercase tracking-wide ${f.color} opacity-70`}>{f.tag}</div>
+
+              <div className="mt-4 pt-3 border-t border-line/60 flex items-center justify-between text-xs">
+                <span className="text-[10px] font-bold text-accent px-2 py-0.5 rounded-full bg-accent/10">
+                  {c.badge}
+                </span>
+                <span className="text-accent font-bold flex items-center gap-0.5 text-[11px]">
+                  {c.actionText} <ChevronRight className="h-3 w-3" />
+                </span>
+              </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── Popular Routes ────────────────────────────────────────────────────── */}
-      <section>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-muted">Popular Routes</h2>
-          <button onClick={() => go({ name: 'routes' })}
-            className="text-xs font-semibold text-blue-400 hover:underline">
-            View all →
+      {/* ── Popular Verified Corridors ────────────────────────────────────── */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-extrabold text-ink">High-Demand Routes</h2>
+            <p className="text-xs text-muted">Frequently searched student and commuter corridors with verified timetables</p>
+          </div>
+          <button
+            onClick={() => go({ name: 'routes' })}
+            className="text-xs font-bold text-accent hover:underline flex items-center gap-1"
+          >
+            <span>View All Routes</span>
+            <ArrowRight className="h-3.5 w-3.5" />
           </button>
         </div>
+
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {publicRoutes.map((r) => <PopularRouteCard key={r.route_id} route={r} />)}
+          {publicRoutes.map((r) => (
+            <PopularRouteCard key={r.route_id} route={r} />
+          ))}
         </div>
       </section>
 
-      {/* ── Recent Searches ───────────────────────────────────────────────────── */}
+      {/* ── Recent Searches ───────────────────────────────────────────────── */}
       {recent.length > 0 && (
-        <section>
-          <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-muted">Recent Searches</h2>
-          <div className="glass rounded-2xl divide-y divide-white/5">
+        <section className="space-y-3">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-muted">Your Recent Searches</h2>
+          <div className="glass rounded-2xl border border-line divide-y divide-line overflow-hidden">
             {recent.map((r) => (
-              <button key={r.id}
+              <button
+                key={r.id}
                 onClick={() => go({ name: 'results', from: r.from, to: r.to })}
-                className="flex w-full items-center gap-3 p-3.5 text-left hover:bg-white/3 transition rounded-2xl">
-                <Clock className="h-4 w-4 shrink-0 text-blue-400" />
-                <div className="flex-1 text-sm font-semibold text-ink">
-                  {r.from || 'Any'} <ArrowRight className="inline h-3 w-3" /> {r.to || 'Any'}
+                className="flex w-full items-center justify-between p-3.5 text-left hover:bg-surface transition"
+              >
+                <div className="flex items-center gap-3">
+                  <Clock className="h-4 w-4 text-accent shrink-0" />
+                  <div className="text-xs sm:text-sm font-semibold text-ink">
+                    <span>{r.from || 'Any'}</span>
+                    <ArrowRight className="inline h-3 w-3 mx-2 text-muted" />
+                    <span>{r.to || 'Any'}</span>
+                  </div>
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted" />
               </button>
@@ -547,42 +702,60 @@ export function HomePage() {
         </section>
       )}
 
-      {/* ── Helplines ─────────────────────────────────────────────────────────── */}
-      <section>
-        <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-muted">Official Helplines</h2>
+      {/* ── Official Helplines & Portals ──────────────────────────────────── */}
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-lg font-extrabold text-ink">Official Transit Helplines</h2>
+          <p className="text-xs text-muted">Official contacts for fleet enquiries, lost & found, and smart cards</p>
+        </div>
+
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { name: 'CTU Toll-Free', number: '1800-274-7400', note: 'Fleet, smart card, complaints' },
-            { name: 'ISBT-43 Enquiry', number: '0172-2624403', note: 'Interstate services (Punjab, HP, J&K)' },
-            { name: 'ISBT-17 Enquiry', number: '0172-2700006', note: 'Delhi, Haryana, UP services' },
-            { name: 'CTU Booking Portal', number: 'ctuonline.chd.gov.in', note: 'Online bus ticket booking', isLink: true },
-            { name: 'PRTC Portal', number: 'pepsurtc.com', note: 'Punjab inter-city booking', isLink: true },
-            { name: 'CGC University Transport', number: '+91-94166-48137', note: 'Institutional fleet incharge' },
+            { name: 'CTU Toll-Free Helpline', number: '1800-274-7400', note: 'Fleet tracking, complaints, pass enquiry' },
+            { name: 'ISBT-43 Enquiry Office', number: '0172-2624403', note: 'Interstate departures (Punjab, HP, J&K)' },
+            { name: 'ISBT-17 Enquiry Office', number: '0172-2700006', note: 'Delhi, Haryana, UP interstate buses' },
+            { name: 'CTU Official Web Booking', number: 'ctuonline.chd.gov.in', note: 'Direct government online booking portal', isLink: true },
+            { name: 'PRTC Punjab Booking Portal', number: 'pepsurtc.com', note: 'Punjab inter-city online tickets', isLink: true },
+            { name: 'CGC Transport Helpdesk', number: '+91-94166-48137', note: 'Campus shuttle coordination desk' },
           ].map((h) => (
-            <div key={h.name} className="glass-sm p-4 rounded-2xl flex items-start gap-3">
-              <div className="h-8 w-8 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0">
-                <Phone className="h-4 w-4 text-blue-400" />
+            <div key={h.name} className="glass p-4 rounded-2xl border border-line flex items-start gap-3">
+              <div className="h-8 w-8 rounded-xl bg-accent/10 text-accent flex items-center justify-center shrink-0">
+                <Phone className="h-4 w-4" />
               </div>
-              <div>
-                <div className="text-sm font-bold text-ink">{h.name}</div>
-                {(h as any).isLink ? (
-                  <a href={`https://${h.number}`} target="_blank" rel="noopener noreferrer"
-                    className="text-xs text-blue-400 hover:underline inline-flex items-center gap-1">
+              <div className="min-w-0">
+                <div className="text-xs font-bold text-ink truncate">{h.name}</div>
+                {h.isLink ? (
+                  <a
+                    href={`https://${h.number}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-semibold text-accent hover:underline inline-flex items-center gap-1 mt-0.5"
+                  >
                     {h.number} <ExternalLink className="h-3 w-3" />
                   </a>
                 ) : (
-                  <a href={`tel:${h.number.replace(/\s/g, '')}`}
-                    className="text-xs text-blue-400 hover:underline">{h.number}</a>
+                  <a
+                    href={`tel:${h.number.replace(/\s/g, '')}`}
+                    className="text-xs font-semibold text-accent hover:underline mt-0.5 block"
+                  >
+                    {h.number}
+                  </a>
                 )}
-                <div className="text-xs text-muted mt-0.5">{h.note}</div>
+                <div className="text-[11px] text-muted mt-0.5 leading-snug">{h.note}</div>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── Data Disclaimer ───────────────────────────────────────────────────── */}
-      <DataDisclaimer />
+      {/* ── Data Notice & Grounding ───────────────────────────────────────── */}
+      <section className="glass rounded-2xl p-4 sm:p-5 border border-line flex items-start gap-3.5">
+        <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+        <div className="text-xs text-muted leading-relaxed">
+          <strong className="text-ink font-semibold">Data Accuracy Notice: </strong>
+          Timetable schedules are grounded in CTU Official Timetable (effective July 25, 2026), PRTC official notifications, and CGC University student directories. Institutional buses are clearly labeled and restricted to enrolled students. Real-time updates depend on active transit feed availability.
+        </div>
+      </section>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { RecentSearch, BookingRecord } from './types';
 import { useLocalStorage } from './lib';
 import { ROUTES, type TransitRoute } from './data/busData';
+import { getSavedTheme, applyTheme, type ThemeName } from './theme';
 
 export type Page =
   | { name: 'home' }
@@ -15,6 +16,12 @@ export type Page =
   | { name: 'booking'; tripId?: string }
   | { name: 'data-audit' }
   | { name: 'admin' };
+
+export interface SiteAlert {
+  active: boolean;
+  message: string;
+  type: 'info' | 'warn' | 'success';
+}
 
 interface Store {
   page: Page;
@@ -34,6 +41,16 @@ interface Store {
   addCustomRoute: (r: TransitRoute) => void;
   deleteCustomRoute: (routeId: string) => void;
   resetRoutes: () => void;
+  // Theme & Setup
+  theme: ThemeName;
+  setTheme: (t: ThemeName) => void;
+  toggleTheme: () => void;
+  isSetupModalOpen: boolean;
+  openSetupModal: () => void;
+  closeSetupModal: () => void;
+  siteAlert: SiteAlert;
+  setSiteAlert: (a: SiteAlert) => void;
+  loadDemoData: () => void;
 }
 
 const Ctx = createContext<Store | null>(null);
@@ -47,11 +64,45 @@ export function useStore() {
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [page, setPage] = useState<Page>({ name: 'home' });
   const [history, setHistory] = useState<Page[]>([]);
-  const [recent, setRecent] = useLocalStorage<RecentSearch[]>('wimb_recent', []);
-  const [favourites, setFavourites] = useLocalStorage<string[]>('wimb_fav', []);
+  const [recent, setRecent] = useLocalStorage<RecentSearch[]>('wimb_recent', [
+    { id: 'r1', from: 'Landran (CGC)', to: 'Chandigarh ISBT-43', at: Date.now() - 3600000 },
+    { id: 'r2', from: 'Kharar Bus Stand', to: 'Chandigarh ISBT-17', at: Date.now() - 7200000 },
+  ]);
+  const [favourites, setFavourites] = useLocalStorage<string[]>('wimb_fav', ['CTU-R213']);
   const [bookings, setBookings] = useLocalStorage<BookingRecord[]>('wimb_bookings', []);
   const [isAdmin, setIsAdmin] = useLocalStorage<boolean>('bt_admin_auth', false);
   const [customRoutes, setCustomRoutes] = useLocalStorage<TransitRoute[]>('bt_custom_routes', []);
+
+  // Theme state
+  const [theme, setThemeState] = useState<ThemeName>(() => getSavedTheme());
+  const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
+
+  // Global site alert
+  const [siteAlert, setSiteAlert] = useLocalStorage<SiteAlert>('bt_site_alert', {
+    active: true,
+    message: '🚀 BUSTRACK 2.0 Live — Official CTU Timetables, Multi-City Transfers & CGC Campus Routes Active.',
+    type: 'info',
+  });
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
+
+  const setTheme = useCallback((t: ThemeName) => {
+    setThemeState(t);
+    applyTheme(t);
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    setThemeState((prev) => {
+      const next: ThemeName = prev === 'light' ? 'dark' : 'light';
+      applyTheme(next);
+      return next;
+    });
+  }, []);
+
+  const openSetupModal = useCallback(() => setIsSetupModalOpen(true), []);
+  const closeSetupModal = useCallback(() => setIsSetupModalOpen(false), []);
 
   const allRoutes = useMemo(() => {
     return [...customRoutes, ...ROUTES];
@@ -133,6 +184,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setCustomRoutes([]);
   }, [setCustomRoutes]);
 
+  const loadDemoData = useCallback(() => {
+    // Preload sample recent searches
+    setRecent([
+      { id: 'demo1', from: 'Landran (CGC)', to: 'Chandigarh ISBT-43', at: Date.now() - 1000 },
+      { id: 'demo2', from: 'Delhi Kashmere Gate', to: 'Landran (CGC)', at: Date.now() - 2000 },
+      { id: 'demo3', from: 'Kharar Bus Stand', to: 'Chandigarh ISBT-17', at: Date.now() - 3000 },
+    ]);
+    setSiteAlert({
+      active: true,
+      message: '✨ Hackathon Demo Mode Active — Pre-loaded Landran ⇄ ISBT-43 schedules & live radar.',
+      type: 'success',
+    });
+  }, [setRecent, setSiteAlert]);
+
   useEffect(() => {
     if (page.name === 'home') setHistory([]);
   }, [page]);
@@ -156,6 +221,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addCustomRoute,
       deleteCustomRoute,
       resetRoutes,
+      theme,
+      setTheme,
+      toggleTheme,
+      isSetupModalOpen,
+      openSetupModal,
+      closeSetupModal,
+      siteAlert,
+      setSiteAlert,
+      loadDemoData,
     }),
     [
       page,
@@ -175,6 +249,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addCustomRoute,
       deleteCustomRoute,
       resetRoutes,
+      theme,
+      setTheme,
+      toggleTheme,
+      isSetupModalOpen,
+      openSetupModal,
+      closeSetupModal,
+      siteAlert,
+      setSiteAlert,
+      loadDemoData,
     ],
   );
 
